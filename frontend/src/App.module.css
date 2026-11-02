@@ -1,0 +1,23 @@
+.page { max-width: 1140px; margin: 0 auto; padding: 0 40px; }
+.header { min-height: 104px; display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 1px solid #d8d9d0; }
+.brand { font-weight: 700; letter-spacing: -.02em; }
+.tag { font-size: 12px; padding: 7px 12px; border: 1px solid #bdc6bf; border-radius: 4px; white-space: nowrap; }
+.intro { max-width: 740px; padding: 72px 0 48px; }
+.eyebrow { color: #88502d; text-transform: uppercase; letter-spacing: .14em; font-size: 12px; font-weight: 700; margin: 0 0 18px; }
+.intro h1 { font-size: clamp(42px, 7vw, 76px); line-height: 1.05; letter-spacing: -.055em; font-weight: 650; margin: 0 0 24px; }
+.description { max-width: 540px; font-size: 19px; line-height: 1.6; color: #425a60; }
+.notice { font-size: 14px; line-height: 1.6; padding-left: 16px; border-left: 3px solid #b56f3e; margin-top: 28px; color: #4d5e5d; }
+.modules { border-top: 1px solid #d8d9d0; display: grid; grid-template-columns: 1fr 1fr; column-gap: 48px; }
+.module { display: flex; gap: 20px; padding: 25px 0; border-bottom: 1px solid #d8d9d0; }
+.number { padding-top: 4px; font-size: 12px; color: #88502d; font-variant-numeric: tabular-nums; }
+.module h2 { margin: 0 0 8px; font-size: 19px; letter-spacing: -.02em; }
+.module p { margin: 0; line-height: 1.6; color: #4d6267; font-size: 14px; }
+.footer { color: #4d6267; padding: 32px 0; font-size: 12px; }
+@media (max-width: 600px) {
+  .page { padding: 0 22px; }
+  .header { min-height: 88px; flex-wrap: wrap; gap: 10px; padding: 18px 0; }
+  .brand { font-size: 14px; }
+  .intro { padding-top: 48px; }
+  .description { font-size: 17px; }
+  .modules { grid-template-columns: 1fr; }
+}

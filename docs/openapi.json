@@ -1,0 +1,38 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Sistema de Baterias Universitárias — API inicial",
+    "version": "0.1.0",
+    "description": "Base HTTP. Os módulos de negócio ainda não estão implementados."
+  },
+  "servers": [{ "url": "http://127.0.0.1:3000" }],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "operationId": "getHealth",
+        "summary": "Verificar resposta do processo HTTP",
+        "description": "Não consulta PostgreSQL e não comprova disponibilidade dos módulos.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "API respondendo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["status", "service"],
+                  "properties": {
+                    "status": { "type": "string", "const": "ok" },
+                    "service": { "type": "string", "const": "baterias-api" }
+                  },
+                  "additionalProperties": false
+                },
+                "example": { "status": "ok", "service": "baterias-api" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

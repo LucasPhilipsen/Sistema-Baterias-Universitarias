@@ -1,0 +1,4 @@
+* { box-sizing: border-box; }
+body { margin: 0; background: #f8f6ef; color: #142b32; font-family: 'Segoe UI', system-ui, sans-serif; }
+button, input, select, textarea { font: inherit; }
+::selection { background: #e7b883; color: #142b32; }

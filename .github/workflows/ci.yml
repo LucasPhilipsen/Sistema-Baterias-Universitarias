@@ -1,0 +1,36 @@
+name: Verificações
+
+on:
+  push:
+    branches: [main, 'feature/**']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: baterias
+          POSTGRES_PASSWORD: teste_ci
+          POSTGRES_DB: baterias_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U baterias -d baterias_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://baterias:teste_ci@127.0.0.1:5432/baterias_test
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm run db:check
