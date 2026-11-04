@@ -6,7 +6,9 @@ O sistema será uma aplicação web para gerenciar integrantes, instrumentos, en
 
 ## Estado do projeto
 
-A entrega atual corresponde à **Sprint 1 — Ajustes iniciais do projeto**: criação e organização do repositório, definição de tecnologias, definição do escopo e organização das histórias no backlog. A implementação da aplicação será feita nas próximas Sprints; ainda não há software executável nesta branch.
+A **Sprint 1 — Ajustes iniciais do projeto** foi concluída, com a organização do repositório, a definição das tecnologias e do escopo e a preparação do backlog.
+
+A **Sprint 2 — 04 a 11/11/2026** está em andamento e contempla acesso ao sistema por perfil, agenda de ensaios e cadastro e consulta de estoque. O repositório ainda contém a base documental e as pastas reservadas; a implementação será adicionada pelas entregas dos respectivos tickets.
 
 ## Tecnologias definidas
 
@@ -24,15 +26,17 @@ O backend será orientado a objetos, com classes de entidades, serviços, reposi
 
 ## Equipe
 
-Cada integrante desenvolverá frontend e backend do módulo sob sua responsabilidade.
+Pedro é responsável pelo frontend de todos os módulos. Os demais integrantes desenvolvem o backend de suas áreas e acompanham a integração e a validação das funcionalidades com ele.
 
 | Integrante | Responsabilidade |
 | --- | --- |
-| Pedro Batista Ribeiro | Usuários, autenticação e integrantes |
-| Giovani de Oliveira Lopes | Ensaios, confirmações e presença |
-| Felipe Miranda Morais | Estoque e instrumentos |
-| Lucas Borges Philipsen | Empréstimos e manutenções |
-| Vitor Eduardo Gonçalves | Dashboard, navegação e coordenação da integração |
+| Pedro Batista Ribeiro | Frontend de todos os módulos, componentes e navegação |
+| Giovani de Oliveira Lopes | Backend de autenticação, perfis e integrantes; coordenação da integração, validação de permissões entre módulos e organização da Wiki |
+| Felipe Miranda Morais | Backend de instrumentos e estoque e cálculo de demanda e disponibilidade |
+| Lucas Borges Philipsen | Backend de empréstimos e manutenção, infraestrutura compartilhada e apoio aos testes de integração |
+| Vitor Eduardo Gonçalves | Backend de ensaios, confirmações e presença |
+
+Cada responsável corrige e valida sua área. A documentação é produzida por todos e organizada por Giovani na Wiki. Contratos de API, autenticação e alterações compartilhadas no banco devem ser combinados entre os responsáveis antes da implementação.
 
 ## Organização
 
@@ -56,7 +60,7 @@ cd Sistema-Baterias-Universitarias
 ## Acompanhamento
 
 - [Quadro e backlog no Jira](https://pds20262-g14.atlassian.net/jira/software/projects/SCRUM/boards/1/backlog).
-- [SCRUM-5 — Ajustes iniciais do projeto](https://pds20262-g14.atlassian.net/browse/SCRUM-5).
+- Histórias da Sprint 2: [SCRUM-10 — Acesso](https://pds20262-g14.atlassian.net/browse/SCRUM-10), [SCRUM-12 — Ensaios](https://pds20262-g14.atlassian.net/browse/SCRUM-12) e [SCRUM-13 — Estoque](https://pds20262-g14.atlassian.net/browse/SCRUM-13).
 - [Convenções de contribuição](CONTRIBUTING.md).
 
 Histórias, critérios de aceite, responsáveis, prioridades e acompanhamento das Sprints ficam no **Jira**. O relatório da disciplina será publicado na **Wiki do GitHub** nas entregas correspondentes.

@@ -2,9 +2,11 @@
 
 ## Organização do trabalho
 
-O Jira é a fonte de acompanhamento das histórias, subtarefas, responsáveis e estados. A Sprint 1 cobre os ajustes iniciais; as histórias de funcionalidades permanecem no backlog até seleção em uma próxima Sprint.
+O Jira é a fonte de acompanhamento das histórias, subtarefas, responsáveis e estados. Cada Sprint reúne as histórias selecionadas no planejamento; os demais itens permanecem no backlog até sua seleção.
 
 Antes de iniciar uma história selecionada, criar subtarefas verificáveis de modelagem/contrato, backend, frontend e validação, conforme necessário. A equipe deve acordar estimativas, dependências e capacidade no planejamento da Sprint.
+
+Pedro desenvolve o frontend dos módulos. Cada responsável pelo backend combina os contratos com ele, acompanha a integração e corrige sua área. Giovani coordena a integração e organiza a Wiki com as contribuições de todos. A divisão completa está no [README](README.md#equipe), e os responsáveis por cada subtarefa estão no Jira.
 
 ## Git e revisão
 
