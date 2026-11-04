@@ -8,7 +8,7 @@ Nosso projeto é uma aplicação web para gerenciar integrantes, instrumentos, e
 
 Na **Sprint 1 — Ajustes iniciais do projeto**, organizamos o repositório, definimos as tecnologias e o escopo e preparamos o backlog.
 
-Estamos na **Sprint 2 — 04 a 11/11/2026**. Nesta etapa, vamos desenvolver o acesso ao sistema por perfil, a agenda de ensaios e o cadastro e a consulta de estoque.
+Estamos na **Sprint 2 — 04 a 11/11/2026**. Nesta etapa, vamos desenvolver o acesso ao sistema por perfil, a agenda de ensaios e o cadastro e a consulta de estoque. A base Express e a conexão com PostgreSQL foram implementadas na SCRUM-20. A SCRUM-22 prepara o modelo de usuários, os perfis e os dados fictícios de acesso. As demais funcionalidades serão integradas conforme as respectivas tarefas forem entregues.
 
 ## Tecnologias definidas
 
@@ -41,12 +41,14 @@ Todos vamos contribuir com a documentação das nossas partes, e Giovani vai org
 ## Organização
 
 ```text
-frontend/          interface da aplicação React
-backend/           API e regras de negócio Express
-database/          scripts de criação e migração do PostgreSQL
+frontend/          espaço para a futura interface
+backend/           API Express, entidades e testes
+database/          scripts PostgreSQL, dados fictícios e testes
 docs/              documentação técnica das tecnologias
 CONTRIBUTING.md    organização do nosso trabalho
 ```
+
+As instruções para criar a tabela de usuários, carregar as contas fictícias e executar os testes da SCRUM-22 estão em [usuários e dados iniciais](database/README.md). A configuração e a execução do backend estão descritas abaixo.
 
 ## Obter o repositório
 
