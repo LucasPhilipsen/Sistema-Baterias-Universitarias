@@ -8,7 +8,7 @@ Nosso projeto é uma aplicação web para gerenciar integrantes, instrumentos, e
 
 Na **Sprint 1 — Ajustes iniciais do projeto**, organizamos o repositório, definimos as tecnologias e o escopo e preparamos o backlog.
 
-Estamos na **Sprint 2 — 04 a 11/11/2026**. Nesta etapa, vamos desenvolver o acesso ao sistema por perfil, a agenda de ensaios e o cadastro e a consulta de estoque. Por enquanto, temos a documentação inicial e as pastas reservadas; vamos adicionar a implementação conforme as tarefas forem entregues.
+Estamos na **Sprint 2 — 04 a 11/11/2026**. Nesta etapa, vamos desenvolver o acesso ao sistema por perfil, a agenda de ensaios e o cadastro e a consulta de estoque.
 
 ## Tecnologias definidas
 
@@ -41,14 +41,12 @@ Todos vamos contribuir com a documentação das nossas partes, e Giovani vai org
 ## Organização
 
 ```text
-frontend/          espaço para a futura interface
-backend/           espaço para a futura API
-database/          espaço para os futuros scripts PostgreSQL
+frontend/          interface da aplicação React
+backend/           API e regras de negócio Express
+database/          scripts de criação e migração do PostgreSQL
 docs/              documentação técnica das tecnologias
 CONTRIBUTING.md    organização do nosso trabalho
 ```
-
-Por enquanto, as pastas de frontend, backend e banco têm apenas arquivos para manter a estrutura no Git. Vamos incluir os scripts e as instruções de instalação, execução e testes junto com a implementação.
 
 ## Obter o repositório
 
@@ -56,6 +54,86 @@ Por enquanto, as pastas de frontend, backend e banco têm apenas arquivos para m
 git clone https://github.com/LucasPhilipsen/Sistema-Baterias-Universitarias.git
 cd Sistema-Baterias-Universitarias
 ```
+
+## Configuração e execução do backend
+
+### Pré-requisitos
+- **Node.js 24 LTS** (conforme `.nvmrc`)
+- **PostgreSQL 18** rodando localmente
+
+### 1. Criar o banco de dados
+No PostgreSQL, crie o banco da aplicação:
+```sql
+CREATE DATABASE bateria_db;
+```
+*(Opcional: para os testes com banco isolado, crie também `CREATE DATABASE bateria_test_db;`)*
+
+### 2. Instalar dependências
+Entre na pasta `backend/` e instale os pacotes:
+```sh
+cd backend
+npm install
+```
+
+### 3. Configurar variáveis de ambiente
+Copie o modelo de ambiente `.env.example` para `.env`:
+```sh
+cp .env.example .env
+```
+Edite o arquivo `.env` e configure o `DB_PASSWORD` com a senha do seu PostgreSQL local. As variáveis essenciais são validadas na inicialização do servidor.
+
+Para os testes, crie o `.env.test` a partir do exemplo:
+```sh
+cp .env.test.example .env.test
+```
+
+### 4. Executar o servidor
+Ainda dentro de `backend/`:
+
+- **Modo desenvolvimento** (com recarregamento automático e `--env-file=.env`):
+  ```sh
+  npm run dev
+  ```
+- **Modo padrão**:
+  ```sh
+  npm start
+  ```
+O servidor estará disponível em `http://localhost:3000`.
+
+### 5. Executar os testes
+Para rodar a suíte de testes com o test runner nativo do Node.js (`node:test` e `node:assert/strict`):
+```sh
+npm test
+```
+
+### 6. Verificar a conexão e saúde da API
+Acesse o endpoint `GET http://localhost:3000/api/health` para checar se a API e a conexão com o PostgreSQL estão operacionais:
+
+- **Banco conectado (200 OK):**
+  ```json
+  {
+    "status": "OK",
+    "message": "API operacional e conectada ao banco de dados.",
+    "timestamp": "2026-11-04T15:10:00.000Z",
+    "database": {
+      "status": "connected",
+      "timestamp": "2026-11-04T12:10:00.123-03"
+    }
+  }
+  ```
+
+- **Banco indisponível (503 Service Unavailable):**
+  ```json
+  {
+    "status": "DEGRADED",
+    "message": "API operacional, mas o banco de dados está inacessível.",
+    "timestamp": "2026-11-04T15:10:00.000Z",
+    "database": {
+      "status": "disconnected",
+      "error": "connect ECONNREFUSED 127.0.0.1:5432"
+    }
+  }
+  ```
 
 ## Acompanhamento
 

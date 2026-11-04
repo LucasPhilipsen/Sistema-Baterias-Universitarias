@@ -4,9 +4,9 @@
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node --env-file=.env server.js",
     "dev": "node --watch --env-file=.env server.js",
-    "test": "node --test --env-file=.env.test tests/**/*.test.js"
+    "test": "node --test --env-file-if-exists=.env.test"
   },
   "dependencies": {
     "express": "^5.3.0",

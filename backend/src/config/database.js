@@ -9,6 +9,7 @@ export const dbPool = new Pool({
   database: env.db.database,
   user: env.db.user,
   password: env.db.password,
+  connectionTimeoutMillis: 3000,
 });
 
 dbPool.on('connect', () => {
