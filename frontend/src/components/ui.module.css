@@ -1,0 +1,18 @@
+.button { border: 1px solid transparent; border-radius: var(--radius-buttons); padding: 10px 16px; min-height: 40px; background: var(--brand); color: white; font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 200ms ease, border-color 200ms ease; }
+.button:hover { background: #0065c0; }
+.button:disabled { opacity: .55; cursor: not-allowed; }
+.secondary { background: var(--color-sky-tint); color: #005fb5; }
+.secondary:hover { background: #d4eafd; }
+.field { display: grid; gap: 8px; margin-block: 16px; }
+.field label { font-size: 14px; font-weight: 500; }
+.field input { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid #9b9793; border-radius: var(--radius-buttons); font: inherit; background: white; color: var(--text); transition: border-color 200ms ease; }
+.field input:hover { border-color: var(--text); }
+.field input[aria-invalid='true'] { border-color: #a62c1c; }
+.field small { color: var(--muted); font-size: 12px; }
+.error { color: #a62c1c; }
+.message { padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-cards); background: white; line-height: 1.5; font-size: 14px; overflow-wrap: anywhere; }
+.message.error { background: #fff2ee; }
+.message strong { display: block; font-weight: 600; margin-bottom: 4px; }
+.loading { display: flex; align-items: center; gap: 8px; }
+.spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--brand); border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
