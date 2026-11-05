@@ -1,0 +1,37 @@
+:root {
+  --color-notion-blue: #0078e0;
+  --color-paper-warmth: #f6f5f4;
+  --color-pure-white: #fff;
+  --color-ink-black: #000;
+  --color-charcoal: #111;
+  --color-stone: #757575;
+  --color-graphite: #615d59;
+  --color-sky-tint: #e6f3fe;
+  --color-marigold: #ffb110;
+  --color-coral: #f64932;
+  --color-midnight-ink: #02093a;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-editorial: 'Source Serif Pro', Georgia, serif;
+  --brand: var(--color-notion-blue);
+  --text: var(--color-charcoal);
+  --muted: var(--color-graphite);
+  --border: rgb(0 0 0 / 8%);
+  --radius-cards: 12px;
+  --radius-buttons: 8px;
+  --page-max-width: 1200px;
+  --section-gap: 80px;
+  font-family: var(--font-sans);
+  color: var(--text);
+  background: var(--color-paper-warmth);
+  font-synthesis: none;
+  line-height: 1.5;
+}
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--brand); outline-offset: 4px; }
+h1 { font-size: clamp(36px, 5.5vw, 72px); line-height: 1.14; letter-spacing: -.04em; font-weight: 650; margin-block: 8px 24px; }
+h2 { font-size: clamp(28px, 3vw, 40px); line-height: 1.2; letter-spacing: -.036em; font-weight: 600; }
+h3 { font-size: 22px; line-height: 1.27; letter-spacing: -.011em; }
+p { color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
