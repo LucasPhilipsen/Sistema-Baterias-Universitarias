@@ -22,7 +22,7 @@ Estamos na **Sprint 2 — 04 a 11/11/2026**. Nesta etapa, vamos desenvolver o ac
 | Comunicação | API REST com JSON |
 | Dependências | npm |
 
-Vamos organizar o backend em classes de entidades, serviços, repositórios e controllers. Detalhamos essas escolhas em [tecnologias e justificativas](docs/tecnologias.md).
+Vamos organizar o servidor em classes de entidades, serviços, repositórios e controladores. Detalhamos essas escolhas em [tecnologias e justificativas](docs/tecnologias.md).
 
 ## Equipe
 
@@ -41,7 +41,7 @@ Todos vamos contribuir com a documentação das nossas partes, e Giovani vai org
 ## Organização
 
 ```text
-frontend/          espaço para a futura interface
+frontend/          interface React, acesso, sessão e navegação por perfil
 backend/           API Express, entidades e testes
 database/          scripts PostgreSQL, dados fictícios e testes
 docs/              documentação técnica das tecnologias
@@ -49,6 +49,8 @@ CONTRIBUTING.md    organização do nosso trabalho
 ```
 
 As instruções para criar a tabela de usuários, carregar as contas fictícias e executar os testes da SCRUM-22 estão em [usuários e dados iniciais](database/README.md). A configuração e a execução do backend estão descritas abaixo.
+
+A tela de acesso da SCRUM-24 usa a API de autenticação e protege a navegação por perfil. Os comandos para executar o frontend, as contas de demonstração e os testes de navegador estão no [guia do frontend](frontend/README.md).
 
 ## Obter o repositório
 
@@ -107,13 +109,13 @@ Ainda dentro de `backend/`:
 O servidor estará disponível em `http://localhost:3000`.
 
 ### 5. Executar os testes
-Para rodar a suíte de testes com o test runner nativo do Node.js (`node:test` e `node:assert/strict`):
+Para rodar a suíte de testes com o executor de testes nativo do Node.js (`node:test` e `node:assert/strict`):
 ```sh
 npm test
 ```
 
 ### 6. Verificar a conexão e saúde da API
-Acesse o endpoint `GET http://localhost:3000/api/health` para checar se a API e a conexão com o PostgreSQL estão operacionais:
+Acesse a rota `GET http://localhost:3000/api/health` para checar se a API e a conexão com o PostgreSQL estão operacionais:
 
 - **Banco conectado (200 OK):**
   ```json

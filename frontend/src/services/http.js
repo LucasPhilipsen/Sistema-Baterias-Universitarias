@@ -7,15 +7,13 @@ export class HttpError extends Error {
   }
 }
 
-// O contrato de autenticação será definido com Giovani na SCRUM-23.
-// Não adiciona token, armazenamento de sessão ou credenciais entre origens.
 export function createHttpClient({ baseUrl = '/api', fetchImpl = globalThis.fetch } = {}) {
   return async function request(path, { body, headers, ...options } = {}) {
     const requestHeaders = new Headers(headers);
     requestHeaders.set('Accept', 'application/json');
     if (body !== undefined) requestHeaders.set('Content-Type', 'application/json');
     const response = await fetchImpl(`${baseUrl.replace(/\/$/, '')}/${path.replace(/^\//, '')}`, {
-      ...options, headers: requestHeaders,
+      credentials: 'same-origin', signal: AbortSignal.timeout(15_000), ...options, headers: requestHeaders,
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     const text = await response.text();

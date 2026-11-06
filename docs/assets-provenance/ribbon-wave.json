@@ -1,0 +1,9 @@
+{
+  "source": "https://stripe.com/en-br",
+  "files": {
+    "wave-desktop.webp": "https://b.stripecdn.com/mkt-ssr-statics/assets/_next/static/media/wave-fallback-desktop-1x.fba6fa88.webp",
+    "wave-tablet.webp": "https://b.stripecdn.com/mkt-ssr-statics/assets/_next/static/media/wave-fallback-tablet-1x.c0413950.webp",
+    "palette-light.webp": "https://b.stripecdn.com/mkt-ssr-statics/assets/_next/static/media/palette-light.3c0e6604.webp",
+    "wave-mobile.webp": "https://b.stripecdn.com/mkt-ssr-statics/assets/_next/static/media/wave-fallback-mobile-1x.80eb433a.webp"
+  }
+}

@@ -1,48 +1,13 @@
-.header { border-bottom: 1px solid var(--border); background: var(--color-paper-warmth); }
-.headerInner, .nav, .main, .footer { max-width: var(--page-max-width); margin-inline: auto; padding-inline: 32px; }
-.headerInner { display: flex; align-items: center; justify-content: space-between; min-height: 80px; gap: 16px; }
-.brand { display: flex; gap: 12px; align-items: center; text-decoration: none; font-weight: 650; letter-spacing: -.025em; }
-.brand small { display: block; color: var(--muted); font-size: 12px; font-weight: 400; letter-spacing: normal; }
-.mark { display: grid; place-items: center; width: 40px; height: 40px; border: 1.5px solid var(--text); border-radius: 8px; background: white; font-family: var(--font-editorial); font-size: 19px; font-weight: 700; transform: rotate(-5deg); }
-.nav { display: flex; gap: 4px; flex-wrap: wrap; padding-bottom: 12px; }
-.nav a { text-decoration: none; padding: 8px 16px; border-radius: 8px; color: var(--muted); font-size: 14px; font-weight: 500; transition: color 200ms ease, background 200ms ease; }
-.nav a:hover { color: var(--text); background: rgb(0 0 0 / 4%); }
-.nav a[aria-current='page'] { color: #005fb5; background: var(--color-sky-tint); }
-.main { padding-block: 40px 80px; min-height: 65vh; }
-.main:focus { outline: none; }
-.eyebrow { letter-spacing: .04em; font-size: 12px; font-weight: 600; color: var(--muted); }
-.hero { text-align: center; padding-block: 20px 80px; }
-.hero h1 { color: var(--color-ink-black); }
-.highlight { display: inline-block; padding: 0 20px 6px; border-radius: 9999px; background: var(--color-notion-blue); }
-.heroIntro { font-family: var(--font-editorial); font-size: 20px; line-height: 1.56; margin: 24px auto; max-width: 600px; }
-.rhythmMarks { display: flex; justify-content: center; align-items: center; gap: 12px; margin-bottom: 24px; }
-.rhythmMarks span { display: grid; place-items: center; width: 44px; height: 44px; border: 2px solid var(--color-notion-blue); border-radius: 50%; font-size: 24px; color: var(--text); background: white; transform: rotate(-12deg); }
-.rhythmMarks span:nth-child(2) { border-color: var(--color-marigold); width: 48px; height: 48px; transform: rotate(8deg); }
-.rhythmMarks span:nth-child(3) { border-color: var(--color-coral); transform: rotate(12deg); }
-.primaryLink { display: inline-flex; align-items: center; gap: 24px; padding: 12px 20px; background: var(--brand); color: white; border-radius: var(--radius-buttons); font-size: 14px; font-weight: 500; text-decoration: none; transition: background 200ms ease; }
-.primaryLink:hover { background: #0065c0; }
-.heroNote { display: block; margin-top: 16px; color: var(--muted); font-size: 12px; }
-.sectionHeading { display: flex; justify-content: space-between; align-items: end; gap: 24px; }
-.sectionHeading h2 { margin: 8px 0 0; }
-.sectionHeading p { margin: 0; }
-.sectionNote { font-size: 14px; color: var(--muted); padding-bottom: 4px; }
-.intro { max-width: 660px; font-size: 18px; margin-bottom: 32px; }
-.cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 28px; }
-.card { background: white; border: 1px solid var(--border); border-radius: var(--radius-cards); padding: 24px; }
-.card { text-decoration: none; display: flex; flex-direction: column; transition: border-color 200ms ease, background 200ms ease; }
-.card:hover { border-color: rgb(0 0 0 / 25%); background: #fdfdfc; }
-.cardTop { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.cardIcon { display: grid; place-items: center; background: var(--color-sky-tint); width: 44px; height: 44px; border-radius: 8px; font-size: 25px; }
-.card:nth-child(2) .cardIcon { background: #fff0c9; }
-.card:nth-child(3) .cardIcon { background: #f9ddd4; }
-.status { font-size: 11px; color: var(--muted); border: 1px solid var(--border); padding: 4px 8px; border-radius: 9999px; }
-.card h3 { margin: 28px 0 0; font-weight: 600; }
-.card p { margin-block: 12px 24px; font-size: 14px; }
-.cardLink { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 500; margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); }
-.cardLink span { font-size: 20px; }
-.back { display: inline-block; margin-top: 32px; }
-.footer { display: flex; padding-block: 24px; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; }
-.skip { position: absolute; top: -100px; left: 16px; padding: 16px; background: white; z-index: 10; border-radius: 8px; }
-.skip:focus { top: 16px; }
-@media (max-width: 800px) { .cards { grid-template-columns: 1fr; } .sectionHeading { display: block; } .sectionNote { display: block; margin-top: 12px; } .card h3 { margin-top: 20px; } }
-@media (max-width: 480px) { .headerInner, .nav, .main, .footer { padding-inline: 20px; } .headerInner { min-height: 76px; } .brand { font-size: 14px; gap: 8px; } .nav { gap: 0; } .nav a { padding: 8px 10px; font-size: 13px; } .hero { padding-block: 8px 64px; } .hero h1 { font-size: 36px; } .highlight { padding-inline: 12px; } .heroIntro { font-size: 18px; } .desktopBreak { display: none; } }
+.introStage { position: relative; isolation: isolate; }
+.introContent { max-width: var(--page-max-width); margin-inline: auto; padding: var(--page-padding-top) var(--page-gutter) 0; }
+.hero { position: relative; z-index: 3; padding-block: 16px 24px; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 40px; }
+.heroNote { margin: 24px 0 0; color: var(--muted); font-size: 14px; }
+.modules { max-width: var(--page-max-width); margin-inline: auto; border-top: 1px solid var(--border); padding: 64px var(--page-gutter) 0; }
+.sectionHeading { display: flex; justify-content: space-between; align-items: baseline; gap: 32px; }
+.sectionHeading p { margin: 0; font-size: 16px; color: var(--muted); }
+.pageIntro { margin-bottom: 40px; }
+.back { margin-top: 32px; }
+@media (max-width: 800px) { .sectionHeading { display: block; } .sectionHeading p { margin-top: 16px; } }
+@media (max-width: 600px) { .hero { padding-block: 0 24px; } .modules { padding-top: 40px; } }
+@media (max-width: 480px) { .actions { flex-direction: column; align-items: stretch; margin-top: 32px; } }
