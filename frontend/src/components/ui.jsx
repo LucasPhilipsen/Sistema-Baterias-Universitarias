@@ -1,8 +1,19 @@
 import { useId } from 'react';
+import { Link } from 'react-router-dom';
 import styles from './ui.module.css';
 
-export function Button({ variant = 'primary', type = 'button', className = '', ...props }) {
-  return <button type={type} className={`${styles.button} ${variant === 'secondary' ? styles.secondary : ''} ${className}`} {...props} />;
+function actionClasses(variant, size, className) {
+  return `${styles.button} ${variant === 'secondary' ? styles.secondary : ''} ${size === 'large' ? styles.large : ''} ${className}`;
+}
+
+export function Button({ variant = 'primary', size = 'default', type = 'button', className = '', ...props }) {
+  return <button type={type} className={actionClasses(variant, size, className)} {...props} />;
+}
+
+export function ActionLink({ variant = 'primary', size = 'default', arrow = false, className = '', children, ...props }) {
+  return <Link className={actionClasses(variant, size, className)} {...props}>
+    {children}{arrow && <span className={styles.arrow} aria-hidden="true">›</span>}
+  </Link>;
 }
 
 export function FormField({ label, hint, error, id, ...props }) {

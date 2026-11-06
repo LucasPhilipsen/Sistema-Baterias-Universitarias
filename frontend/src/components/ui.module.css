@@ -1,18 +1,21 @@
-.button { border: 1px solid transparent; border-radius: var(--radius-buttons); padding: 10px 16px; min-height: 40px; background: var(--brand); color: white; font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 200ms ease, border-color 200ms ease; }
-.button:hover { background: #0065c0; }
+.button { display: inline-flex; align-items: center; justify-content: center; gap: 16px; border: 1px solid transparent; border-radius: var(--radius-buttons); padding: 12px 24px; min-height: var(--control-height); background: var(--brand); color: var(--color-pure-white); font: inherit; font-size: 14px; line-height: 20px; font-weight: 400; text-decoration: none; cursor: pointer; transition: background 160ms ease, border-color 160ms ease; }
+.button:hover { background: var(--color-indigo-hover); }
 .button:disabled { opacity: .55; cursor: not-allowed; }
-.secondary { background: var(--color-sky-tint); color: #005fb5; }
-.secondary:hover { background: #d4eafd; }
-.field { display: grid; gap: 8px; margin-block: 16px; }
-.field label { font-size: 14px; font-weight: 500; }
-.field input { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid #9b9793; border-radius: var(--radius-buttons); font: inherit; background: white; color: var(--text); transition: border-color 200ms ease; }
-.field input:hover { border-color: var(--text); }
-.field input[aria-invalid='true'] { border-color: #a62c1c; }
+.secondary { background: transparent; border-color: var(--color-lavender-border); color: var(--brand); }
+.secondary:hover { background: var(--color-mist); border-color: var(--brand); }
+.large { gap: 12px; font-size: 16px; line-height: 22px; font-weight: 500; }
+.arrow { font-size: 18px; line-height: 1; }
+.field { display: grid; gap: 8px; margin-block: 0 24px; }
+.field label { font-size: 14px; font-weight: 400; }
+.field input { width: 100%; min-height: 48px; padding: 12px; border: 1px solid var(--color-lavender-border); border-radius: var(--radius-buttons); font: inherit; font-size: 16px; font-weight: 400; line-height: 1.4; background: var(--color-pure-white); color: var(--text); transition: border-color 160ms ease; }
+.field input:hover { border-color: var(--brand); }
+.field input:disabled { background: var(--color-mist); color: var(--muted); }
+.field input[aria-invalid='true'] { border-color: var(--color-error); }
 .field small { color: var(--muted); font-size: 12px; }
-.error { color: #a62c1c; }
-.message { padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-cards); background: white; line-height: 1.5; font-size: 14px; overflow-wrap: anywhere; }
-.message.error { background: #fff2ee; }
-.message strong { display: block; font-weight: 600; margin-bottom: 4px; }
-.loading { display: flex; align-items: center; gap: 8px; }
+.error { color: var(--color-error); }
+.message { padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-cards); background: var(--color-mist); line-height: 1.5; font-size: 14px; font-weight: 400; overflow-wrap: anywhere; }
+.message.error { border-color: var(--color-error); background: var(--color-error-surface); }
+.message strong { display: block; font-weight: 400; margin-bottom: 4px; }
+.loading { display: flex; align-items: center; gap: 8px; font-size: 14px; }
 .spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--brand); border-radius: 50%; animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }

@@ -1,0 +1,17 @@
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 440px); align-items: start; gap: clamp(48px, 8vw, 120px); padding-block: 16px 24px; }
+.intro { padding-top: 8px; --intro-description-width: 440px; }
+.details { margin: 48px 0 0; max-width: 440px; }
+.details > div { display: grid; grid-template-columns: 100px minmax(0, 1fr); align-items: baseline; gap: 16px; padding-block: 16px; border-top: 1px solid var(--border); }
+.details dt { font-size: 14px; font-weight: 400; }
+.details dd { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+.panel { min-width: 0; border: 1px solid var(--border); border-radius: var(--radius-cards); background: var(--color-pure-white); padding: 32px; }
+.panel h2 { font-size: 32px; margin: 0 0 16px; }
+.panel > p { font-size: 16px; line-height: 1.5; margin: 0 0 32px; }
+.panel form { margin-top: 24px; }
+.passwordToggle { display: flex; align-items: center; gap: 8px; width: fit-content; min-height: 44px; color: var(--text); font-size: 14px; font-weight: 400; cursor: pointer; }
+.passwordToggle input { width: 16px; height: 16px; margin: 0; accent-color: var(--brand); }
+.formActions { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 24px; }
+.error { margin-top: 16px; border-radius: var(--radius-cards); }
+.panel .help { padding-top: 24px; margin: 32px 0 0; border-top: 1px solid var(--border); color: var(--muted); font-size: 14px; line-height: 1.5; }
+@media (max-width: 800px) { .layout { grid-template-columns: 1fr; max-width: 560px; margin-inline: auto; gap: 40px; padding: 0; } .details { display: none; } .intro { padding: 0; } }
+@media (max-width: 480px) { .panel { padding: 24px; } }
