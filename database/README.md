@@ -10,7 +10,7 @@ A tabela `usuarios` guarda a identidade usada no acesso ao sistema e será reuti
 | `senha_hash` | text | Obrigatório, no formato scrypt descrito abaixo |
 | `perfil` | varchar(10) | `DIRETORIA` ou `INTEGRANTE` |
 
-A classe `Usuario`, em `backend/src/entities/Usuario.js`, normaliza nome e e-mail, valida os dados, identifica o perfil de diretoria e omite o hash na serialização JSON. O repositório de usuários deverá mapear `senha_hash` para `senhaHash`. A autorização das operações na API será implementada na SCRUM-23.
+A classe `Usuario`, em `backend/src/entities/Usuario.js`, normaliza nome e e-mail, valida os dados, identifica o perfil de diretoria e omite o hash na serialização JSON. O repositório de usuários mapeia `senha_hash` para `senhaHash`. O contrato de acesso e os middlewares de autorização estão em [autenticação](../docs/autenticacao.md).
 
 ## Preparar o banco
 
@@ -35,7 +35,7 @@ O seed é opcional e exclusivo para desenvolvimento e testes. Pode ser reaplicad
 | Diretoria | `diretoria@bateria.example` | `DiretoriaDemo!2026` |
 | Integrante | `integrante@bateria.example` | `IntegranteDemo!2026` |
 
-Essas contas e senhas são públicas e servem somente para testes locais e demonstrações. Não execute o seed em um ambiente com dados reais. O login será implementado na SCRUM-23.
+Essas contas e senhas são públicas e servem somente para testes locais e demonstrações. Não execute o seed em um ambiente com dados reais. Para usar o login da SCRUM-23, aplique também `002-criar-sessoes.sql` conforme as [instruções de autenticação](../docs/autenticacao.md).
 
 As senhas são armazenadas no formato:
 
@@ -43,7 +43,7 @@ As senhas são armazenadas no formato:
 scrypt$131072$8$1$<salt hexadecimal de 16 bytes>$<hash hexadecimal de 64 bytes>
 ```
 
-Parâmetros: `N=131072`, `r=8`, `p=1`; cada senha recebeu um salt aleatório próprio. Para gerar ou conferir esses hashes com `node:crypto`, decodifique o salt de hexadecimal para `Buffer` e use `maxmem: 256 * 1024 * 1024`. O limite de memória permite executar esses parâmetros. Na autenticação, derive o hash da senha informada com o salt armazenado e compare os resultados com `timingSafeEqual`. A conferência será implementada no serviço da SCRUM-23.
+Parâmetros: `N=131072`, `r=8`, `p=1`; cada senha recebeu um salt aleatório próprio. Para gerar ou conferir esses hashes com `node:crypto`, decodifique o salt de hexadecimal para `Buffer` e use `maxmem: 256 * 1024 * 1024`. O limite de memória permite executar esses parâmetros. Na autenticação, `SenhaService` deriva o hash da senha informada de forma assíncrona e compara os resultados com `timingSafeEqual`.
 
 As restrições do banco e a entidade aceitam esse formato de hash; uma mudança de algoritmo deverá atualizar ambos. O formato protege contra o armazenamento acidental de senha em texto, mas a geração correta dos hashes continua sendo responsabilidade da aplicação.
 

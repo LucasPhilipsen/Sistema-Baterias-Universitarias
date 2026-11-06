@@ -59,6 +59,8 @@ cd Sistema-Baterias-Universitarias
 
 ## Configuração e execução do backend
 
+O contrato de login, sessão, saída e permissões para integrar a tela de acesso está em [autenticação — SCRUM-23](docs/autenticacao.md).
+
 ### Pré-requisitos
 - **Node.js 24 LTS** (conforme `.nvmrc`)
 - **PostgreSQL 18** rodando localmente
@@ -69,6 +71,8 @@ No PostgreSQL, crie o banco da aplicação:
 CREATE DATABASE bateria_db;
 ```
 *(Opcional: para os testes com banco isolado, crie também `CREATE DATABASE bateria_test_db;`)*
+
+Após criar o banco, aplique os scripts de usuários e sessões. A ordem, as contas fictícias e os comandos estão em [usuários e dados iniciais](database/README.md) e no [contrato de autenticação](docs/autenticacao.md#preparar-e-testar).
 
 ### 2. Instalar dependências
 Entre na pasta `backend/` e instale os pacotes:
