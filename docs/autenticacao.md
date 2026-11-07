@@ -77,6 +77,8 @@ await request('/auth/logout', { method: 'POST', body: {} });
 
 Ao abrir a aplicação, consulte `/auth/me` para restaurar o usuário na interface. Em `401`, mostre a tela de acesso; em `403`, informe falta de permissão. O cliente HTTP expõe o corpo do erro em `erro.data.error`. A proteção das operações permanece no backend, independentemente da navegação exibida.
 
+A SCRUM-24 já centraliza esse fluxo no contexto de sessão. Nas telas de ensaios e estoque, obtenha `session` por `useAuth()` e use `session.request()` para tratar revogação e mudança de perfil. Os exemplos acima descrevem as chamadas de autenticação; o cliente compartilhado dos módulos e o roteiro de conferência estão em [integração da Sprint 2](integracao-sprint-2.md).
+
 ## Proteger os módulos do backend
 
 Os middlewares estão em `backend/src/middlewares/autenticacao.js`. Devem ser registrados antes dos controllers e do tratamento global de erros:

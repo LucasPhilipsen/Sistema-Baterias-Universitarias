@@ -108,3 +108,5 @@ Os cenários rodam em computador e em dimensões de tela de celular: acesso vál
 A integração com PostgreSQL é uma verificação separada, documentada no contrato da SCRUM-23, e exige banco descartável configurado. Para conferir manualmente com o banco real, use as duas contas de demonstração, recarregue os módulos, tente `/administracao` como integrante, saia e confira que uma nova abertura do módulo exige login.
 
 Os padrões reutilizáveis e exemplos de composição estão em [Componentes da interface](../docs/frontend-components.md).
+
+O contrato compartilhado com ensaios e estoque e os cenários de validação estão em [Integração da Sprint 2](../docs/integracao-sprint-2.md).
