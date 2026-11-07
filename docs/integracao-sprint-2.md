@@ -12,7 +12,7 @@ Este documento reúne o contrato de acesso já implementado e o roteiro para int
 | Dados, regras e API de instrumentos e estoque | Felipe | SCRUM-30 e SCRUM-31 |
 | Testes de autenticação, sessão e permissões | Lucas | SCRUM-25 |
 
-O [contrato de autenticação](autenticacao.md) define rotas, cookie, perfis e erros da API. O [guia do frontend](../frontend/README.md) descreve o contexto de sessão e a proteção da navegação. A SCRUM-34 confere a ligação entre essas partes e os módulos; os testes específicos continuam nas tarefas dos responsáveis.
+O [contrato de autenticação](autenticacao.md) define rotas, cookie, perfis e erros da API. Os [contratos de ensaios e estoque](contratos-sprint-2.md) definem os dados e as operações dos módulos. O [guia do frontend](../frontend/README.md) descreve o contexto de sessão e a proteção da navegação. A SCRUM-34 confere a ligação entre essas partes; os testes específicos continuam nas tarefas dos responsáveis.
 
 ## Contrato de acesso disponível
 
@@ -26,7 +26,7 @@ const dados = await session.request(caminho, { signal });
 await session.request(caminho, { method: 'POST', body: dadosDoFormulario });
 ```
 
-`caminho`, o formato dos dados e o método de cada operação serão definidos nos contratos de ensaios e estoque. Esses exemplos mostram o cliente compartilhado; não representam rotas já disponíveis.
+`caminho`, o formato dos dados e o método de cada operação seguem os [contratos de ensaios e estoque](contratos-sprint-2.md). Esses exemplos mostram o cliente compartilhado; as rotas dos módulos ainda precisam ser implementadas.
 
 - O cliente envia JSON e o navegador envia o cookie na mesma origem. A interface não precisa ler nem armazenar o token.
 - Um `401` de uma chamada autenticada encerra o estado de sessão na interface e exige novo login.
@@ -57,21 +57,23 @@ O preparo do ambiente está no [README](../README.md), no [guia do banco](../dat
 
 1. `database/001-criar-usuarios.sql`;
 2. `database/002-criar-sessoes.sql`;
-3. dados fictícios de `database/seeds/001-usuarios-desenvolvimento.sql`, somente em desenvolvimento.
+3. `database/003-criar-ensaios.sql`;
+4. `database/004-criar-instrumentos.sql`;
+5. dados fictícios de `database/seeds/001-usuarios-desenvolvimento.sql`, somente em desenvolvimento.
 
-Vitor e Felipe precisam combinar a numeração dos próximos scripts, as relações e a ordem de aplicação. Scripts de estrutura já aplicados não devem ser editados para atualizar um banco existente; alterações posteriores usam novos scripts.
+Os scripts `003` e `004` acompanham a definição dos contratos e ainda não criam operações na API. Em um banco que já tem usuários e sessões, aplicar somente os novos scripts. Scripts de estrutura já aplicados não devem ser editados para atualizar um banco existente; alterações posteriores usam novos scripts.
 
-## Pontos para alinhar com os responsáveis
+## Definições para implementação em paralelo
 
-O contrato de acesso acima já existe no código. Ainda é necessário confirmar o uso dele nas entregas de ensaios e estoque e completar os respectivos contratos de domínio.
+O contrato de acesso acima já existe no código. Os dados, as rotas, os corpos JSON e os erros dos módulos foram preparados em [contratos da Sprint 2](contratos-sprint-2.md), com os scripts de modelagem correspondentes, para permitir que frontend e backend avancem a partir da mesma definição.
 
-| Quem participa | O que precisa ficar definido | Resultado esperado |
+| Quem implementa | Definição disponível | Resultado esperado |
 | --- | --- | --- |
-| Vitor e Pedro | Métodos e caminhos, campos obrigatórios, data e horário, situação do ensaio, formatos de resposta e validação | Contrato da SCRUM-26 usado no backend e na agenda |
-| Felipe e Pedro | Métodos e caminhos, tipo e unidade física, identificação única, situações e contagem disponível | Contrato da SCRUM-30 usado no backend e nas telas de estoque |
-| Giovani com Vitor, Felipe e Pedro | Uso do cliente autenticado, autorização, apresentação de `401` e `403`, sequência dos scripts | Integração consistente com o contrato de acesso |
+| Vitor e Pedro | `inicioEm` com fuso, local, descrição e situação; cadastro, edição, consulta e cancelamento; script `003` | Backend e agenda com os mesmos campos e respostas |
+| Felipe e Pedro | Tipos e unidades separados, identificação única, situações e contagem disponível; script `004` | Backend e telas de estoque com os mesmos campos e respostas |
+| Giovani com os responsáveis | Cliente autenticado, autorização, apresentação de `401` e `403`, roteiro integrado | Validação entre os módulos implementados |
 
-O alinhamento com os responsáveis está pendente. Atualizar as decisões após essa conferência. A coordenação da integração não exige aprovação de Giovani para cada ajuste de outro módulo.
+A definição foi preparada para revisão e repasse ao grupo. Ajustes necessários durante a implementação devem atualizar o contrato e considerar quem consome a operação. A validação final continua dependente das APIs e telas prontas.
 
 ## Roteiro de validação integrada
 
@@ -128,4 +130,4 @@ Ao executar o roteiro, registrar versão, data, ambiente, perfil, passos, result
 - Vitor acompanha regras, persistência e rotas de ensaios.
 - Felipe acompanha regras, persistência e rotas de estoque.
 
-A SCRUM-34 só estará concluída após a conferência das duas áreas integradas, os alinhamentos registrados e o tratamento das falhas encontradas.
+A SCRUM-34 só estará concluída após o repasse dos contratos, a conferência das duas áreas integradas e o tratamento das falhas encontradas.

@@ -1,4 +1,6 @@
-# Usuários e dados iniciais — SCRUM-22
+# Banco de dados e scripts
+
+## Usuários e dados iniciais — SCRUM-22
 
 A tabela `usuarios` guarda a identidade usada no acesso ao sistema e será reutilizada na gestão de integrantes. Usaremos seu `id` como referência nos módulos de ensaios, confirmações e movimentações. Os campos específicos de integrantes serão definidos na SCRUM-11, mantendo nome, e-mail e credenciais em um cadastro compartilhado.
 
@@ -55,6 +57,32 @@ O carregamento do ambiente, o conjunto de conexões do `pg` e a inicialização 
 
 ## Verificar a entrega
 
+### Modelagem de ensaios e instrumentos
+
+Os scripts `003-criar-ensaios.sql` e `004-criar-instrumentos.sql` definem a base dos módulos da Sprint 2, conforme os [contratos de ensaios e estoque](../docs/contratos-sprint-2.md). O primeiro cria `ensaios`; o segundo cria `tipos_instrumentos` e `instrumentos`. Cada um executa em uma transação. Eles não implementam rotas HTTP.
+
+Esses scripts requerem PostgreSQL 18 com banco em UTF-8. A unicidade de nomes dos tipos usa `pg_unicode_fast` para tratar maiúsculas e minúsculas também em letras acentuadas, independentemente da configuração regional do banco.
+
+Em um banco de desenvolvimento com usuários e sessões já preparados, aplicar cada novo script uma vez:
+
+```sh
+psql -X -h localhost -p 5432 -U postgres -d bateria_db -v ON_ERROR_STOP=1 -f database/003-criar-ensaios.sql
+psql -X -h localhost -p 5432 -U postgres -d bateria_db -v ON_ERROR_STOP=1 -f database/004-criar-instrumentos.sql
+```
+
+Para conferir as restrições sem usar o banco da aplicação, criar um banco novo com prefixo `bateria_integracao_test_`:
+
+```sh
+createdb -h localhost -p 5432 -U postgres bateria_integracao_test_local
+psql -X -h localhost -p 5432 -U postgres -d bateria_integracao_test_local -v ON_ERROR_STOP=1 -f database/003-criar-ensaios.sql
+psql -X -h localhost -p 5432 -U postgres -d bateria_integracao_test_local -v ON_ERROR_STOP=1 -f database/004-criar-instrumentos.sql
+psql -X -h localhost -p 5432 -U postgres -d bateria_integracao_test_local -v ON_ERROR_STOP=1 -f database/tests/contratos-sprint-2.sql
+```
+
+O teste confere instante com fuso, situações iniciais, validações, unicidade, chave estrangeira e contagens por situação, incluindo tipo sem unidades. Os registros de teste são revertidos ao final; os valores das sequências de identificação podem avançar. A verificação das rotas e da interface fica para a implementação dos módulos.
+
+### Usuários e dados iniciais
+
 Teste da entidade e dos hashes das contas fictícias, sem depender do servidor HTTP ou de pacotes npm:
 
 ```sh
@@ -77,3 +105,4 @@ Os testes verificam os dois perfis, duplicidade de e-mail, normalização, campo
 - [Node.js 24 — scrypt](https://nodejs.org/docs/latest-v24.x/api/crypto.html#cryptoscryptpassword-salt-keylen-options-callback).
 - [OWASP — armazenamento de senhas](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#scrypt).
 - [PostgreSQL 18 — restrições](https://www.postgresql.org/docs/18/ddl-constraints.html).
+- [PostgreSQL 18 — regras de comparação e conversão de caixa](https://www.postgresql.org/docs/18/collation.html#COLLATION-MANAGING-STANDARD).
