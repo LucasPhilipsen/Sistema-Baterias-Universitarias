@@ -10,6 +10,7 @@ test('envia JSON, preserva opções e lê a resposta da API', async () => {
     assert.equal(options.body, '{"nome":"Bateria"}');
     assert.equal(options.headers.get('Content-Type'), 'application/json');
     assert.equal(options.signal, controller.signal);
+    assert.equal(options.credentials, 'same-origin');
     return new Response('{"status":"OK"}');
   } });
   assert.deepEqual(await request('/health', { method: 'POST', body: { nome: 'Bateria' }, signal: controller.signal }), { status: 'OK' });

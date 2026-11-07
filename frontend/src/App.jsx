@@ -1,48 +1,81 @@
-import { useEffect, useRef } from 'react';
-import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom';
-import { Message } from './components/ui.jsx';
+import { Route, Routes, useLocation } from 'react-router-dom';
+import { ActionLink, Message } from './components/ui.jsx';
+import AppShell from './components/AppShell.jsx';
+import PageIntro from './components/PageIntro.jsx';
+import ModuleGrid from './components/ModuleGrid.jsx';
+import BateriaLogos from './components/BateriaLogos.jsx';
+import RibbonWave from './components/RibbonWave/RibbonWave.jsx';
+import { useAuth } from './auth/AuthContext.jsx';
+import { canAccess, profileLabel } from './auth/access.js';
+import { RequireAuth, SessionUnavailable } from './auth/RequireAuth.jsx';
+import Login from './pages/Login.jsx';
 import styles from './App.module.css';
 
 const modules = [
-  { path: '/acesso', title: 'Acesso', ticket: 'SCRUM-24', description: 'Entrada no sistema e controle de sessão por perfil.' },
-  { path: '/ensaios', title: 'Ensaios', ticket: 'SCRUM-28', description: 'Agenda da bateria e organização dos ensaios.' },
-  { path: '/instrumentos', title: 'Instrumentos e estoque', ticket: 'SCRUM-32', description: 'Consulta de instrumentos e situação das unidades.' },
+  { path: '/acesso', title: 'Login', description: 'Entre com sua conta para acompanhar a bateria.', status: 'Disponível', actionLabel: 'Fazer login' },
+  { path: '/ensaios', title: 'Ensaios', description: 'Agenda da bateria e organização dos ensaios.' },
+  { path: '/instrumentos', title: 'Instrumentos e estoque', description: 'Consulta de instrumentos e situação das unidades.' },
 ];
+const administration = { path: '/administracao', title: 'Área da diretoria', description: 'Organização dos ensaios e dos instrumentos da bateria.', status: 'Diretoria' };
 
 function Home() {
-  return <><section className={styles.hero} aria-labelledby="home-title">
-    <div className={styles.rhythmMarks} aria-hidden="true"><span>♪</span><span>✳</span><span>♫</span></div>
-    <p className={styles.eyebrow}>Gestão da bateria universitária</p><h1 id="home-title">Cada ensaio começa<br />com <span className={styles.highlight}>organização.</span></h1>
-    <p className={styles.heroIntro}>A agenda, os instrumentos e a sua bateria.<br className={styles.desktopBreak} /> Tudo no mesmo ritmo, em um só lugar.</p>
-    <Link className={styles.primaryLink} to="/ensaios">Explorar ensaios <span aria-hidden="true">→</span></Link>
-    <span className={styles.heroNote}>Interface em construção · funcionalidades em breve</span>
-    </section>
-    <section aria-labelledby="modules-title"><div className={styles.sectionHeading}><div><p className={styles.eyebrow}>O espaço da sua bateria</p><h2 id="modules-title">Cada coisa no seu lugar.</h2></div><span className={styles.sectionNote}>Uma base para os próximos encontros.</span></div>
-    <div className={styles.cards}>{modules.map((module, index) => <Link className={styles.card} to={module.path} key={module.path}><div className={styles.cardTop}><span className={styles.cardIcon} aria-hidden="true">{['↗', '▦', '♫'][index]}</span><span className={styles.status}>Em desenvolvimento</span></div><h3>{module.title}</h3><p>{module.description}</p><span className={styles.cardLink}>Abrir módulo <span aria-hidden="true">↗</span></span></Link>)}</div>
+  const { usuario } = useAuth();
+  const visibleModules = [...modules.filter(module => !usuario || module.path !== '/acesso'), ...(canAccess('/administracao', usuario) ? [administration] : [])];
+  return <>
+    <div className={styles.introStage}>
+      <RibbonWave extendToHeader />
+      <div className={styles.introContent}>
+        <section className={styles.hero} aria-labelledby="home-title">
+          <PageIntro id="home-title" variant="hero" eyebrow="Gestão da bateria universitária"
+            title={<>Cada ensaio começa<br />com organização.</>}
+            description="A agenda, os instrumentos e a sua bateria. Tudo no mesmo ritmo, em um só lugar.">
+            <div className={styles.actions}>
+              <ActionLink to="/ensaios" arrow>Explorar ensaios</ActionLink>
+              <ActionLink to="/instrumentos" variant="secondary">Consultar instrumentos</ActionLink>
+            </div>
+            {usuario && <p className={styles.heroNote}>{usuario.nome} · {profileLabel(usuario.perfil)}</p>}
+          </PageIntro>
+        </section>
+        <BateriaLogos />
+      </div>
+    </div>
+    <section className={styles.modules} aria-labelledby="modules-title">
+      <div className={styles.sectionHeading}><h2 id="modules-title">Cada coisa no seu lugar.</h2><p>Da preparação ao próximo encontro.</p></div>
+      <ModuleGrid modules={visibleModules} />
     </section>
   </>;
+}
+
+function Administration() {
+  return <section aria-labelledby="administration-title">
+    <PageIntro className={styles.pageIntro} id="administration-title" eyebrow="Diretoria" title="Organize o próximo encontro."
+      description="Acompanhe os módulos de gestão da sua bateria." />
+    <Message>As operações de gestão de ensaios e instrumentos estarão disponíveis nas próximas entregas.</Message>
+    <ModuleGrid modules={modules.filter(module => module.path !== '/acesso')} />
+  </section>;
 }
 
 function Placeholder({ module }) {
-  return <><p className={styles.eyebrow}>Em desenvolvimento</p><h1>{module.title}</h1><p className={styles.intro}>{module.description}</p>
+  return <section aria-labelledby="module-title">
+    <PageIntro className={styles.pageIntro} id="module-title" eyebrow="Em desenvolvimento" title={module.title} description={module.description} />
     <Message>Este módulo ainda não está disponível. A navegação faz parte da base inicial do sistema.</Message>
-    <Link className={styles.back} to="/">← Voltar ao início</Link></>;
+    <ActionLink className={styles.back} variant="secondary" to="/">Voltar ao início</ActionLink>
+  </section>;
 }
 
 export default function App() {
+  const { status } = useAuth();
   const location = useLocation();
-  const main = useRef(null);
-  const previousPath = useRef(location.pathname);
-  useEffect(() => {
-    const title = modules.find(module => module.path === location.pathname)?.title ?? (location.pathname === '/' ? 'Início' : 'Página não encontrada');
-    document.title = `${title} | Bateria Universitária`;
-    if (previousPath.current !== location.pathname) { main.current?.focus(); previousPath.current = location.pathname; }
-  }, [location.pathname]);
-  return <><a className={styles.skip} href="#conteudo">Pular para o conteúdo</a>
-    <header className={styles.header}><div className={styles.headerInner}><Link to="/" className={styles.brand}><span className={styles.mark} aria-hidden="true">BU</span><span>Bateria Universitária<small>Gestão e organização</small></span></Link></div>
-      <nav className={styles.nav} aria-label="Navegação principal"><NavLink to="/" end>Início</NavLink>{modules.map(module => <NavLink key={module.path} to={module.path}>{module.title}</NavLink>)}</nav>
-    </header>
-    <main ref={main} tabIndex={-1} id="conteudo" className={styles.main}><Routes><Route path="/" element={<Home />} />{modules.map(module => <Route key={module.path} path={module.path} element={<Placeholder module={module} />} />)}<Route path="*" element={<><h1>Página não encontrada</h1><p>Confira o endereço ou volte para o início.</p><Link to="/">Voltar ao início</Link></>} /></Routes></main>
-    <footer className={styles.footer}>Bateria Universitária · Projeto acadêmico · Grupo 14</footer>
-  </>;
+  const title = [...modules, administration].find(module => module.path === location.pathname)?.title ?? (location.pathname === '/' ? 'Início' : 'Página não encontrada');
+  return <AppShell title={title} fullWidth={location.pathname === '/' && status !== 'error'}>
+    {status === 'error' ? <SessionUnavailable /> : <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/acesso" element={<Login />} />
+      <Route element={<RequireAuth key={location.key} />}>
+        {modules.filter(module => module.path !== '/acesso').map(module => <Route key={module.path} path={module.path} element={<Placeholder module={module} />} />)}
+        <Route path="/administracao" element={<Administration />} />
+      </Route>
+      <Route path="*" element={<><PageIntro title="Página não encontrada" description="Confira o endereço ou volte para o início." className={styles.pageIntro} /><ActionLink to="/" variant="secondary">Voltar ao início</ActionLink></>} />
+    </Routes>}
+  </AppShell>;
 }

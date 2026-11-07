@@ -1,0 +1,5 @@
+.rail { position: relative; z-index: 1; min-width: 0; min-height: 112px; padding-block: 8px; }
+.loop { width: 100%; min-width: 0; }
+@media (any-hover: hover) and (any-pointer: fine) {
+  .loop:has(:global(.logoloop__content:hover)) :global(.logoloop__content:not(:hover)) { filter: grayscale(1); }
+}
