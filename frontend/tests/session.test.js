@@ -39,6 +39,57 @@ test('login normaliza e-mail, preserva senha e envia somente as credenciais', as
   assert.equal(JSON.stringify(session.getSnapshot()).includes('senha'), false);
 });
 
+test('revalidação preserva a sessão e permite requisições enquanto aguarda a API', async () => {
+  const response = deferred();
+  const session = createSession({ request: async path => {
+    if (path === '/auth/me') return response.promise;
+    if (path === '/auth/login') return { usuario };
+    return { permitido: true };
+  } });
+  await session.login({ email: usuario.email, senha: 'senha' });
+  const previous = session.getSnapshot();
+  const refreshing = session.refresh();
+  assert.equal(session.getSnapshot(), previous);
+  assert.deepEqual(await session.request('/recurso'), { permitido: true });
+  response.resolve({ usuario: { ...usuario, perfil: 'DIRETORIA' } });
+  await refreshing;
+  assert.equal(session.getSnapshot().usuario.perfil, 'DIRETORIA');
+});
+
+test('revalidação anônima preserva o estado e a confirmação de saída', async () => {
+  const response = deferred();
+  const session = createSession({ request: async path => {
+    if (path === '/auth/me') { await response.promise; throw httpError(401); }
+    return null;
+  } });
+  await session.logout();
+  const previous = session.getSnapshot();
+  const refreshing = session.refresh();
+  assert.equal(session.getSnapshot(), previous);
+  response.resolve();
+  await refreshing;
+  assert.deepEqual(session.getSnapshot(), previous);
+});
+
+test('revalidação bloqueia o acesso ao confirmar expiração ou indisponibilidade', async () => {
+  for (const error of [httpError(401), new TypeError('offline')]) {
+    const response = deferred();
+    const session = createSession({ request: async path => {
+      if (path === '/auth/login') return { usuario };
+      await response.promise;
+      throw error;
+    } });
+    await session.login({ email: usuario.email, senha: 'senha' });
+    const refreshing = session.refresh();
+    assert.equal(session.getSnapshot().status, 'authenticated');
+    response.resolve();
+    await refreshing;
+    assert.equal(session.getSnapshot().usuario, null);
+    assert.equal(session.getSnapshot().status, error.status === 401 ? 'anonymous' : 'error');
+    await assert.rejects(session.request('/recurso'), { status: 401 });
+  }
+});
+
 test('credenciais inválidas deixam sessão anônima e mensagens não expõem erros internos', async () => {
   const session = createSession({ request: async () => { throw httpError(401); } });
   await assert.rejects(session.login({ email: usuario.email, senha: 'errada' }), { status: 401 });

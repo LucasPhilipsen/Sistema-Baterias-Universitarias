@@ -154,3 +154,35 @@ test('formulário respeita teclado e viewport sem rolagem horizontal', async ({ 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('acesso.png'), fullPage: true });
 });
+
+test('retomar a aba preserva o foco e o preenchimento do login', async ({ page }) => {
+  await page.goto('/acesso');
+  const email = page.getByLabel('E-mail', { exact: false });
+  const senha = page.getByLabel('Senha (obrigatório)', { exact: true });
+  await email.fill('integrante@bateria.example');
+  await senha.fill('senha em preenchimento');
+  await senha.focus();
+  await page.route('**/api/auth/me', async route => {
+    await new Promise(resolve => setTimeout(resolve, 250));
+    await route.continue();
+  });
+  const checked = page.waitForResponse('**/api/auth/me');
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await checked;
+  await expect(senha).toBeFocused();
+  await expect(senha).toHaveValue('senha em preenchimento');
+  await expect(email).toHaveValue('integrante@bateria.example');
+});
+
+test('revalidação periódica mantém a página protegida montada', async ({ page }) => {
+  await page.clock.install();
+  await login(page);
+  const heading = page.getByRole('heading', { name: 'Ensaios', exact: true });
+  await expect(heading).toBeVisible();
+  const originalHeading = await heading.elementHandle();
+  const checked = page.waitForResponse('**/api/auth/me');
+  await page.clock.runFor(60_000);
+  await checked;
+  await expect(heading).toBeVisible();
+  expect(await originalHeading.evaluate(element => element.isConnected)).toBe(true);
+});

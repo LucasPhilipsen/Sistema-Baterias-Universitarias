@@ -33,6 +33,7 @@ O formulário usa `POST /api/auth/login`, envia somente `email` e `senha` e most
 
 - O backend mantém a sessão de oito horas e o cookie HttpOnly. A interface guarda apenas o usuário em memória; não usa localStorage nem sessionStorage.
 - `GET /api/auth/me` restaura a sessão na abertura e a revalida ao entrar em uma rota protegida, ao retomar a aba e a cada minuto enquanto a aplicação estiver visível e autenticada. A consulta não prolonga a sessão.
+- A revalidação automática acontece em segundo plano e preserva a tela, o foco e os formulários abertos. A entrada em uma rota protegida aguarda a conferência; expiração ou falha na consulta bloqueiam o acesso.
 - `POST /api/auth/logout` revoga a sessão antes de confirmar a saída. Uma falha bloqueia o conteúdo e oferece uma nova tentativa; não anuncia uma revogação que não aconteceu.
 - A entrada e a saída da conta são comunicadas às outras abas por BroadcastChannel quando disponível. A revalidação ao retomar a aba e nas rotas também funciona sem esse recurso.
 - Integrantes acessam `/ensaios` e `/instrumentos`; diretoria também acessa `/administracao`. O destino padrão após login é `/ensaios` para integrante e `/administracao` para diretoria. O destino anterior é recuperado somente se for interno, conhecido e permitido.

@@ -38,15 +38,19 @@ export function createSession({ request = defaultRequest, onSessionChange = () =
       if (['signingIn', 'signingOut'].includes(state.status)) return Promise.resolve();
       if (pendingRefresh) return pendingRefresh;
       const current = revision;
+      const previousReason = state.reason;
       const wasAuthenticated = Boolean(state.usuario) || state.reason === 'expired';
-      update({ status: 'checking', usuario: null, reason: null });
+      // Revalidar em segundo plano preserva a tela e os formulários já abertos.
+      if (!['authenticated', 'anonymous'].includes(state.status)) {
+        update({ status: 'checking', usuario: null, reason: null });
+      }
       const operation = (async () => {
         try {
           const usuario = readUser(await request('/auth/me', { cache: 'no-store' }));
           if (current === revision) update({ status: 'authenticated', usuario, reason: null });
         } catch (error) {
           if (current !== revision) return;
-          if (error instanceof HttpError && error.status === 401) anonymous(wasAuthenticated ? 'expired' : null);
+          if (error instanceof HttpError && error.status === 401) anonymous(wasAuthenticated ? 'expired' : previousReason);
           else update({ status: 'error', usuario: null, reason: 'unavailable' });
         }
       })();
