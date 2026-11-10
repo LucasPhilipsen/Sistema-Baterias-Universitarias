@@ -55,6 +55,11 @@ export function validarEConverterInstante(valor) {
     throw new TypeError('Data e hora inválidas.');
   }
 
+  const anoUtc = date.getUTCFullYear();
+  if (anoUtc < 1970 || anoUtc > 9999) {
+    throw new TypeError('O instante resultante, convertido para UTC, deve estar entre 1970 e 9999.');
+  }
+
   return date;
 }
 

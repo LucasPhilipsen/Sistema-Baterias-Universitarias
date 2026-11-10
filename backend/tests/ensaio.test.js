@@ -212,6 +212,9 @@ test('Ensaio: recusa datas sem fuso horário, fora do intervalo de anos ou inexi
     '2026-11-10T19:00:00+15:00', // deslocamento fora do limite
     '10/11/2026 19:00:00',
     'invalido',
+    // Regressão Bug 1: local dentro do intervalo, mas UTC fora
+    '1970-01-01T00:00:00+03:00', // UTC = 1969-12-31T21:00:00Z → abaixo de 1970
+    '9999-12-31T23:59:59-03:00', // UTC = 10000-01-01T02:59:59Z → acima de 9999
   ];
 
   for (const inicioEm of invalidos) {
@@ -230,6 +233,84 @@ test('Ensaio: recusa situação diferente de AGENDADO e CANCELADO', () => {
       TypeError,
     );
   }
+});
+
+// Regressão Bug 1: validação do ano UTC após conversão com fuso
+test('Ensaio e EnsaioService: recusa instantes cujo ano UTC saia do intervalo 1970-9999', async () => {
+  // --- Entidade: rejeita via string ---
+  // 1970-01-01T00:00:00+03:00 → UTC = 1969-12-31T21:00:00Z → ano UTC 1969
+  assert.throws(
+    () => new Ensaio({ inicioEm: '1970-01-01T00:00:00+03:00', local: 'Quadra' }),
+    TypeError,
+    'Deveria rejeitar: UTC resultante é 1969',
+  );
+  // 9999-12-31T23:59:59-03:00 → UTC = 10000-01-01T02:59:59Z → ano UTC 10000
+  assert.throws(
+    () => new Ensaio({ inicioEm: '9999-12-31T23:59:59-03:00', local: 'Quadra' }),
+    TypeError,
+    'Deveria rejeitar: UTC resultante é 10000',
+  );
+
+  // --- Entidade: aceita limites exatos em UTC ---
+  const limiteInf = new Ensaio({ inicioEm: '1970-01-01T00:00:00Z', local: 'Quadra' });
+  assert.equal(limiteInf.inicioEm, '1970-01-01T00:00:00.000Z');
+  const limiteSup = new Ensaio({ inicioEm: '9999-12-31T23:59:59Z', local: 'Quadra' });
+  assert.equal(limiteSup.inicioEm, '9999-12-31T23:59:59.000Z');
+  // Entrada +00:01 cujo UTC ainda é 9999 deve ser aceita
+  const limiteSupFusoPositivo = new Ensaio({ inicioEm: '9999-12-31T23:59:59+00:01', local: 'Quadra' });
+  assert.ok(limiteSupFusoPositivo.inicioEm.startsWith('9999-12-31'));
+
+  // --- Serviço: valida_EConverterInicioEm (ErroAplicacao 400) ---
+  const { validarEConverterInicioEm } = await import('../src/services/EnsaioService.js');
+  const { ErroAplicacao } = await import('../src/errors/ErroAplicacao.js');
+
+  assert.throws(
+    () => validarEConverterInicioEm('1970-01-01T00:00:00+03:00'),
+    (err) => err instanceof ErroAplicacao && err.status === 400 && err.code === 'DADOS_INVALIDOS',
+    'Serviço deve rejeitar com 400 DADOS_INVALIDOS (UTC = 1969)',
+  );
+  assert.throws(
+    () => validarEConverterInicioEm('9999-12-31T23:59:59-03:00'),
+    (err) => err instanceof ErroAplicacao && err.status === 400 && err.code === 'DADOS_INVALIDOS',
+    'Serviço deve rejeitar com 400 DADOS_INVALIDOS (UTC = 10000)',
+  );
+});
+
+// Regressão Bug 2: EnsaioRepository ramo sem connect() deve usar this.banco.query
+test('EnsaioRepository (ramo sem connect): atualizar retorna cancelado quando situação for CANCELADO', async () => {
+  // O EnsaioRepositoryEmMemoria (definido no topo deste arquivo) não possui connect(),
+  // exercitando o ramo else de EnsaioRepository. Usamos EnsaioRepositoryEmMemoria diretamente.
+  const repo = new EnsaioRepositoryEmMemoria([
+    { id: 1, inicioEm: '2026-11-10T22:00:00Z', local: 'Quadra', situacao: 'CANCELADO' },
+  ]);
+  const resultado = await repo.atualizar(1, {
+    inicioEm: new Date('2026-11-10T22:00:00Z'),
+    local: 'Nova Quadra',
+    descricao: null,
+  });
+  assert.equal(resultado.encontrado, true);
+  assert.equal(resultado.cancelado, true);
+
+  // Atualização em ensaio agendado deve retornar o ensaio atualizado
+  const repo2 = new EnsaioRepositoryEmMemoria([
+    { id: 1, inicioEm: '2026-11-10T22:00:00Z', local: 'Quadra', situacao: 'AGENDADO' },
+  ]);
+  const resultado2 = await repo2.atualizar(1, {
+    inicioEm: new Date('2026-12-01T18:00:00Z'),
+    local: 'Galpão',
+    descricao: 'Novo desc',
+  });
+  assert.equal(resultado2.encontrado, true);
+  assert.equal(resultado2.cancelado, false);
+  assert.equal(resultado2.ensaio.local, 'Galpão');
+
+  // ID inexistente retorna encontrado: false
+  const resultadoNaoEncontrado = await repo2.atualizar(999, {
+    inicioEm: new Date('2026-12-01T18:00:00Z'),
+    local: 'Galpão',
+    descricao: null,
+  });
+  assert.equal(resultadoNaoEncontrado.encontrado, false);
 });
 
 // ==================== TESTES DE API: AUTENTICAÇÃO E PERMISSÕES ====================
@@ -386,6 +467,23 @@ test('API Ensaios: recusa local ou descrição contendo \\u0000 e ano fora do in
   });
   assert.equal(anoAntigo.status, 400);
   assert.equal((await anoAntigo.json()).error.code, 'DADOS_INVALIDOS');
+
+  // Regressão Bug 1: local dentro do intervalo, mas UTC fora — API deve retornar 400
+  const limiteInferiorFuso = await c.solicitar('/api/ensaios', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ inicioEm: '1970-01-01T00:00:00+03:00', local: 'Quadra' }),
+  });
+  assert.equal(limiteInferiorFuso.status, 400);
+  assert.equal((await limiteInferiorFuso.json()).error.code, 'DADOS_INVALIDOS');
+
+  const limiteSupFuso = await c.solicitar('/api/ensaios', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ inicioEm: '9999-12-31T23:59:59-03:00', local: 'Quadra' }),
+  });
+  assert.equal(limiteSupFuso.status, 400);
+  assert.equal((await limiteSupFuso.json()).error.code, 'DADOS_INVALIDOS');
 });
 
 test('API Ensaios: recusa parâmetros de URL inválidos e retorna 404 para ensaio inexistente', async t => {

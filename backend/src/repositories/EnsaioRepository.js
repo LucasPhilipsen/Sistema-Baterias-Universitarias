@@ -88,7 +88,7 @@ export class EnsaioRepository {
       if (consulta[0].situacao === 'CANCELADO') {
         return { encontrado: true, cancelado: true };
       }
-      const { rows: atualizado } = await client.query(
+      const { rows: atualizado } = await this.banco.query(
         `UPDATE ensaios
          SET inicio_em = $1, local = $2, descricao = $3
          WHERE id = $4 AND situacao != 'CANCELADO'
