@@ -23,6 +23,10 @@ export function validarEConverterInstante(valor) {
   const minute = parseInt(minStr, 10);
   const second = parseInt(secStr, 10);
 
+  if (year < 1970 || year > 9999) {
+    throw new TypeError('O ano da data de início deve estar entre 1970 e 9999.');
+  }
+
   if (month < 1 || month > 12) {
     throw new TypeError('Mês inválido na data de início.');
   }
@@ -75,6 +79,10 @@ export class Ensaio {
       if (isNaN(inicioEm.getTime())) {
         throw new TypeError('Data e hora de início inválida.');
       }
+      const ano = inicioEm.getUTCFullYear();
+      if (ano < 1970 || ano > 9999) {
+        throw new TypeError('O ano da data de início deve estar entre 1970 e 9999.');
+      }
       inicioEmDate = inicioEm;
     } else if (typeof inicioEm === 'string') {
       inicioEmDate = validarEConverterInstante(inicioEm);
@@ -82,14 +90,14 @@ export class Ensaio {
       throw new TypeError('Data e hora de início deve ser uma data válida ou string ISO 8601.');
     }
 
-    if (typeof local !== 'string' || !local.trim() || local.trim().length > 160) {
-      throw new TypeError('Local deve ter entre 1 e 160 caracteres.');
+    if (typeof local !== 'string' || !local.trim() || local.trim().length > 160 || local.includes('\u0000')) {
+      throw new TypeError('Local deve ter entre 1 e 160 caracteres e não conter caracteres nulos.');
     }
 
     let descricaoNormalizada = null;
     if (descricao !== null && descricao !== undefined) {
-      if (typeof descricao !== 'string') {
-        throw new TypeError('Descrição deve ser um texto de até 1000 caracteres.');
+      if (typeof descricao !== 'string' || descricao.includes('\u0000')) {
+        throw new TypeError('Descrição deve ser um texto de até 1000 caracteres e não conter caracteres nulos.');
       }
       const trimmed = descricao.trim();
       if (trimmed.length > 1000) {
@@ -130,4 +138,3 @@ export class Ensaio {
     };
   }
 }
-

@@ -5,7 +5,6 @@ import { Ensaio, SituacaoEnsaio } from '../src/entities/Ensaio.js';
 import { Usuario } from '../src/entities/Usuario.js';
 import { EnsaioService } from '../src/services/EnsaioService.js';
 import { AuthService } from '../src/services/AuthService.js';
-import { SenhaService } from '../src/services/SenhaService.js';
 
 const hashDemo = 'scrypt$131072$8$1$0123456789abcdef0123456789abcdef$0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 
@@ -175,8 +174,8 @@ test('Ensaio: recusa identificadores inválidos', () => {
   }
 });
 
-test('Ensaio: recusa local inválido', () => {
-  for (const local of ['', '   ', 'a'.repeat(161), null, undefined, 123]) {
+test('Ensaio: recusa local inválido ou contendo caractere nulo \\u0000', () => {
+  for (const local of ['', '   ', 'a'.repeat(161), null, undefined, 123, 'Quadra\u0000Central']) {
     assert.throws(
       () => new Ensaio({ inicioEm: '2026-11-10T22:00:00Z', local }),
       TypeError,
@@ -184,7 +183,7 @@ test('Ensaio: recusa local inválido', () => {
   }
 });
 
-test('Ensaio: recusa descrição com mais de 1000 caracteres ou tipo não texto', () => {
+test('Ensaio: recusa descrição com mais de 1000 caracteres, tipo não texto ou contendo \\u0000', () => {
   assert.throws(
     () => new Ensaio({ inicioEm: '2026-11-10T22:00:00Z', local: 'Quadra', descricao: 'a'.repeat(1001) }),
     TypeError,
@@ -193,11 +192,18 @@ test('Ensaio: recusa descrição com mais de 1000 caracteres ou tipo não texto'
     () => new Ensaio({ inicioEm: '2026-11-10T22:00:00Z', local: 'Quadra', descricao: 123 }),
     TypeError,
   );
+  assert.throws(
+    () => new Ensaio({ inicioEm: '2026-11-10T22:00:00Z', local: 'Quadra', descricao: 'Descricao com \u0000 nulo' }),
+    TypeError,
+  );
 });
 
-test('Ensaio: recusa datas sem fuso horário ou inexistentes no calendário', () => {
+test('Ensaio: recusa datas sem fuso horário, fora do intervalo de anos ou inexistentes no calendário', () => {
   const invalidos = [
     '2026-11-10T19:00:00', // sem fuso
+    '0000-01-01T00:00:00Z', // ano 0000 não suportado
+    '0001-01-01T00:00:00Z', // ano < 1970
+    '1969-12-31T23:59:59Z', // ano < 1970
     '2026-02-30T19:00:00-03:00', // 30 de fevereiro
     '2026-02-29T19:00:00-03:00', // 2026 não é bissexto
     '2026-04-31T19:00:00-03:00', // 31 de abril
@@ -341,6 +347,47 @@ test('API Ensaios: recusa campos desconhecidos ou de controle no corpo', async t
   assert.equal((await campoDesconhecido.json()).error.code, 'DADOS_INVALIDOS');
 });
 
+test('API Ensaios: recusa local ou descrição contendo \\u0000 e ano fora do intervalo suportado', async t => {
+  const c = await prepararAmbiente(t);
+  const headers = { Cookie: c.cookieDiretoria, 'Content-Type': 'application/json' };
+
+  // Local com \u0000
+  const localNulo = await c.solicitar('/api/ensaios', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ inicioEm: '2026-11-10T19:00:00-03:00', local: 'Quadra\u0000Teste' }),
+  });
+  assert.equal(localNulo.status, 400);
+  assert.equal((await localNulo.json()).error.code, 'DADOS_INVALIDOS');
+
+  // Descrição com \u0000
+  const descNulo = await c.solicitar('/api/ensaios', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ inicioEm: '2026-11-10T19:00:00-03:00', local: 'Quadra', descricao: 'Desc\u0000Nula' }),
+  });
+  assert.equal(descNulo.status, 400);
+  assert.equal((await descNulo.json()).error.code, 'DADOS_INVALIDOS');
+
+  // Ano 0000
+  const anoZero = await c.solicitar('/api/ensaios', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ inicioEm: '0000-01-01T00:00:00Z', local: 'Quadra' }),
+  });
+  assert.equal(anoZero.status, 400);
+  assert.equal((await anoZero.json()).error.code, 'DADOS_INVALIDOS');
+
+  // Ano anterior a 1970
+  const anoAntigo = await c.solicitar('/api/ensaios', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ inicioEm: '1900-01-01T00:00:00Z', local: 'Quadra' }),
+  });
+  assert.equal(anoAntigo.status, 400);
+  assert.equal((await anoAntigo.json()).error.code, 'DADOS_INVALIDOS');
+});
+
 test('API Ensaios: recusa parâmetros de URL inválidos e retorna 404 para ensaio inexistente', async t => {
   const c = await prepararAmbiente(t);
   const headers = { Cookie: c.cookieDiretoria, 'Content-Type': 'application/json' };
@@ -379,16 +426,53 @@ test('API Ensaios: recusa parâmetros de URL inválidos e retorna 404 para ensai
   assert.equal((await naoExistePatch.json()).error.code, 'ENSAIO_NAO_ENCONTRADO');
 });
 
-test('API Ensaios: recusa filtros desconhecidos ou com situação inválida em GET /api/ensaios', async t => {
-  const c = await prepararAmbiente(t);
+test('API Ensaios: recusa parâmetros de consulta em rotas que não aceitam e filtros inválidos na listagem', async t => {
+  const c = await prepararAmbiente(t, {
+    ensaiosIniciais: [{ id: 1, inicioEm: '2026-11-10T22:00:00Z', local: 'Quadra', situacao: 'AGENDADO' }],
+  });
+  const headers = { Cookie: c.cookieDiretoria, 'Content-Type': 'application/json' };
 
+  // Listagem com filtro desconhecido
   const filtroDesconhecido = await c.solicitar('/api/ensaios?outro=1', { headers: { Cookie: c.cookieDiretoria } });
   assert.equal(filtroDesconhecido.status, 400);
   assert.equal((await filtroDesconhecido.json()).error.code, 'DADOS_INVALIDOS');
 
+  // Listagem com situação inválida
   const situacaoInvalida = await c.solicitar('/api/ensaios?situacao=OUTRA', { headers: { Cookie: c.cookieDiretoria } });
   assert.equal(situacaoInvalida.status, 400);
   assert.equal((await situacaoInvalida.json()).error.code, 'DADOS_INVALIDOS');
+
+  // Consulta por ID com query param
+  const getComQuery = await c.solicitar('/api/ensaios/1?outro=1', { headers: { Cookie: c.cookieDiretoria } });
+  assert.equal(getComQuery.status, 400);
+  assert.equal((await getComQuery.json()).error.code, 'DADOS_INVALIDOS');
+
+  // POST com query param
+  const postComQuery = await c.solicitar('/api/ensaios?outro=1', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ inicioEm: '2026-11-10T19:00:00-03:00', local: 'Quadra' }),
+  });
+  assert.equal(postComQuery.status, 400);
+  assert.equal((await postComQuery.json()).error.code, 'DADOS_INVALIDOS');
+
+  // PUT com query param
+  const putComQuery = await c.solicitar('/api/ensaios/1?outro=1', {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify({ inicioEm: '2026-11-10T19:00:00-03:00', local: 'Quadra' }),
+  });
+  assert.equal(putComQuery.status, 400);
+  assert.equal((await putComQuery.json()).error.code, 'DADOS_INVALIDOS');
+
+  // PATCH com query param
+  const patchComQuery = await c.solicitar('/api/ensaios/1/cancelamento?outro=1', {
+    method: 'PATCH',
+    headers,
+    body: '{}',
+  });
+  assert.equal(patchComQuery.status, 400);
+  assert.equal((await patchComQuery.json()).error.code, 'DADOS_INVALIDOS');
 });
 
 test('API Ensaios: cancelamento exige corpo vazio {}', async t => {

@@ -14,4 +14,3 @@ export function createEnsaiosRouter({ ensaioService, authService }) {
 
   return router;
 }
-

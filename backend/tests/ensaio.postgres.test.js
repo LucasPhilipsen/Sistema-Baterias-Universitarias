@@ -122,14 +122,38 @@ test('persistência e regras de ensaios com PostgreSQL descartável', { skip: !h
   assert.equal(row.situacao, 'AGENDADO');
   assert.equal(row.inicio_em.toISOString(), '2026-11-10T22:00:00.000Z');
 
-  // 2. Integrante pode consultar o ensaio criado
+  // 2. Validações adicionais contra caractere nulo \u0000 e ano 0000 não geram erro 500 no PostgreSQL
+  const postNulo = await fetch(`${base}/api/ensaios`, {
+    method: 'POST',
+    headers: { Cookie: cookieDiretoria, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ inicioEm: '2026-11-10T19:00:00-03:00', local: 'Local\u0000Invalido' }),
+  });
+  assert.equal(postNulo.status, 400);
+  assert.equal((await postNulo.json()).error.code, 'DADOS_INVALIDOS');
+
+  const postAnoZero = await fetch(`${base}/api/ensaios`, {
+    method: 'POST',
+    headers: { Cookie: cookieDiretoria, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ inicioEm: '0000-01-01T00:00:00Z', local: 'Quadra' }),
+  });
+  assert.equal(postAnoZero.status, 400);
+  assert.equal((await postAnoZero.json()).error.code, 'DADOS_INVALIDOS');
+
+  // 3. Integrante pode consultar o ensaio criado
   const getRes = await fetch(`${base}/api/ensaios/1`, {
     headers: { Cookie: cookieIntegrante },
   });
   assert.equal(getRes.status, 200);
   assert.deepEqual(await getRes.json(), { ensaio: ensaioCriado });
 
-  // 3. Integrante tenta alterar via HTTP e recebe 403 ACESSO_NEGADO
+  // Consulta por ID recusando query params desconhecidos
+  const getComQuery = await fetch(`${base}/api/ensaios/1?outro=1`, {
+    headers: { Cookie: cookieIntegrante },
+  });
+  assert.equal(getComQuery.status, 400);
+  assert.equal((await getComQuery.json()).error.code, 'DADOS_INVALIDOS');
+
+  // 4. Integrante tenta alterar via HTTP e recebe 403 ACESSO_NEGADO
   const putProibido = await fetch(`${base}/api/ensaios/1`, {
     method: 'PUT',
     headers: {
@@ -144,7 +168,7 @@ test('persistência e regras de ensaios com PostgreSQL descartável', { skip: !h
   assert.equal(putProibido.status, 403);
   assert.equal((await putProibido.json()).error.code, 'ACESSO_NEGADO');
 
-  // 4. Diretoria cadastra segundo ensaio com data anterior para testar ordenação do banco
+  // 5. Diretoria cadastra segundo ensaio com data anterior para testar ordenação do banco
   await fetch(`${base}/api/ensaios`, {
     method: 'POST',
     headers: { Cookie: cookieDiretoria, 'Content-Type': 'application/json' },
@@ -163,7 +187,7 @@ test('persistência e regras de ensaios com PostgreSQL descartável', { skip: !h
   assert.equal(ensaios[0].id, 2); // 2026-11-09 vem antes de 2026-11-10
   assert.equal(ensaios[1].id, 1);
 
-  // 5. Diretoria edita ensaio 1
+  // 6. Diretoria edita ensaio 1
   const putRes = await fetch(`${base}/api/ensaios/1`, {
     method: 'PUT',
     headers: { Cookie: cookieDiretoria, 'Content-Type': 'application/json' },
@@ -181,7 +205,7 @@ test('persistência e regras de ensaios com PostgreSQL descartável', { skip: !h
   assert.equal(ensaioEditado.descricao, null);
   assert.equal(ensaioEditado.situacao, 'AGENDADO');
 
-  // 6. Diretoria cancela ensaio 1
+  // 7. Diretoria cancela ensaio 1
   const cancelRes1 = await fetch(`${base}/api/ensaios/1/cancelamento`, {
     method: 'PATCH',
     headers: { Cookie: cookieDiretoria, 'Content-Type': 'application/json' },
@@ -201,7 +225,7 @@ test('persistência e regras de ensaios com PostgreSQL descartável', { skip: !h
   assert.equal(cancelRes2.status, 200);
   assert.deepEqual(await cancelRes2.json(), { ensaio: ensaioCancelado });
 
-  // 7. Proteção de concorrência / integridade no banco: tentar editar ensaio cancelado retorna 409
+  // 8. Proteção de concorrência / integridade no banco: tentar editar ensaio cancelado retorna 409
   const putCancelado = await fetch(`${base}/api/ensaios/1`, {
     method: 'PUT',
     headers: { Cookie: cookieDiretoria, 'Content-Type': 'application/json' },
@@ -213,7 +237,7 @@ test('persistência e regras de ensaios com PostgreSQL descartável', { skip: !h
   assert.equal(putCancelado.status, 409);
   assert.equal((await putCancelado.json()).error.code, 'ENSAIO_CANCELADO');
 
-  // 8. Filtro no banco
+  // 9. Filtro no banco
   const filtroAgendados = await fetch(`${base}/api/ensaios?situacao=AGENDADO`, {
     headers: { Cookie: cookieIntegrante },
   });
@@ -228,4 +252,3 @@ test('persistência e regras de ensaios com PostgreSQL descartável', { skip: !h
   assert.equal(cancelados.length, 1);
   assert.equal(cancelados[0].id, 1);
 });
-

@@ -21,6 +21,10 @@ export function validarEConverterInicioEm(valor) {
   const minute = parseInt(minStr, 10);
   const second = parseInt(secStr, 10);
 
+  if (year < 1970 || year > 9999) {
+    throw new ErroAplicacao(400, 'DADOS_INVALIDOS', 'O ano da data de início deve estar entre 1970 e 9999.');
+  }
+
   if (month < 1 || month > 12) {
     throw new ErroAplicacao(400, 'DADOS_INVALIDOS', 'Mês inválido na data de início.');
   }
@@ -90,12 +94,18 @@ export function validarDadosEnsaio(dados) {
   if (!('local' in dados) || typeof dados.local !== 'string' || !dados.local.trim() || dados.local.trim().length > 160) {
     throw new ErroAplicacao(400, 'DADOS_INVALIDOS', 'O local é obrigatório e deve ter entre 1 e 160 caracteres.');
   }
+  if (dados.local.includes('\u0000')) {
+    throw new ErroAplicacao(400, 'DADOS_INVALIDOS', 'O local contém caracteres inválidos.');
+  }
   const local = dados.local.trim();
 
   let descricao = null;
   if ('descricao' in dados && dados.descricao !== null && dados.descricao !== undefined) {
     if (typeof dados.descricao !== 'string') {
       throw new ErroAplicacao(400, 'DADOS_INVALIDOS', 'A descrição deve ser um texto de até 1000 caracteres.');
+    }
+    if (dados.descricao.includes('\u0000')) {
+      throw new ErroAplicacao(400, 'DADOS_INVALIDOS', 'A descrição contém caracteres inválidos.');
     }
     const trimmed = dados.descricao.trim();
     if (trimmed.length > 1000) {
@@ -155,4 +165,3 @@ export class EnsaioService {
     return ensaio;
   }
 }
-

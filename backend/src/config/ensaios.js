@@ -5,4 +5,3 @@ import { EnsaioService } from '../services/EnsaioService.js';
 export const ensaioService = new EnsaioService({
   ensaios: new EnsaioRepository(dbPool),
 });
-
