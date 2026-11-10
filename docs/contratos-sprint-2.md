@@ -1,6 +1,6 @@
 # Contratos de ensaios e estoque — Sprint 2
 
-Definição preparada na SCRUM-34 para orientar a implementação de Vitor, Felipe e Pedro. Os scripts de modelagem acompanham este documento. As rotas abaixo ainda precisam ser implementadas e validadas; a presença do contrato não indica que estão disponíveis na API.
+Definição preparada na SCRUM-34 para orientar a implementação de Vitor, Felipe e Pedro. Os scripts de modelagem acompanham este documento. As rotas de instrumentos e estoque foram implementadas no backend na SCRUM-31; as de ensaios ainda precisam ser implementadas e validadas, e a presença do contrato não indica que estão disponíveis na API. A integração com as telas continua pendente nos dois módulos.
 
 ## Convenções compartilhadas
 
@@ -140,6 +140,23 @@ O resumo do estoque usa os nomes atuais dos tipos e inclui tipos com zero unidad
 ```
 
 `total = disponiveis + emprestados + emManutencao`. A disponibilidade considera somente `DISPONIVEL`. Calcular os totais na consulta ao banco, usando `COUNT(instrumentos.id)` ao incluir tipos sem unidades, e converter os resultados para números inteiros JSON. Confirmações de ensaio não reservam unidades e não reduzem essa disponibilidade.
+
+### Implementação no backend — SCRUM-31
+
+As rotas acima estão em `backend/src/routes/estoque.js`, com entidades, serviços, repositórios e controllers de tipos, unidades e resumo. A edição de unidade bloqueia a linha (`SELECT ... FOR UPDATE`) dentro de uma transação antes de conferir a situação para a troca de tipo; as histórias de empréstimos e manutenções devem alterar `situacao` com `UPDATE` na mesma linha para respeitar essa proteção.
+
+`npm test` cobre o contrato HTTP com repositórios em memória. Para a verificação com PostgreSQL 18, crie um banco vazio com prefixo `bateria_estoque_test_`, configure um arquivo de ambiente de testes com seus dados e execute na raiz do repositório, em PowerShell:
+
+```powershell
+$env:ESTOQUE_PG_INTEGRATION = '1'
+try {
+  node --env-file=backend/.env.test --test backend/tests/estoque.postgres.test.js
+} finally {
+  Remove-Item Env:ESTOQUE_PG_INTEGRATION
+}
+```
+
+O teste aplica os scripts `001`, `002`, `004` e os dados fictícios de acesso, prepara situações indisponíveis diretamente no banco e falha se as tabelas já existirem. Para repetir, use outro banco vazio.
 
 ## Erros dos módulos
 

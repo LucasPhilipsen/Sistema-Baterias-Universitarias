@@ -26,7 +26,7 @@ const dados = await session.request(caminho, { signal });
 await session.request(caminho, { method: 'POST', body: dadosDoFormulario });
 ```
 
-`caminho`, o formato dos dados e o método de cada operação seguem os [contratos de ensaios e estoque](contratos-sprint-2.md). Esses exemplos mostram o cliente compartilhado; as rotas dos módulos ainda precisam ser implementadas.
+`caminho`, o formato dos dados e o método de cada operação seguem os [contratos de ensaios e estoque](contratos-sprint-2.md). Esses exemplos mostram o cliente compartilhado. As rotas de instrumentos e estoque já estão disponíveis no backend (SCRUM-31); as de ensaios ainda precisam ser implementadas.
 
 - O cliente envia JSON e o navegador envia o cookie na mesma origem. A interface não precisa ler nem armazenar o token.
 - Um `401` de uma chamada autenticada encerra o estado de sessão na interface e exige novo login.
@@ -61,7 +61,7 @@ O preparo do ambiente está no [README](../README.md), no [guia do banco](../dat
 4. `database/004-criar-instrumentos.sql`;
 5. dados fictícios de `database/seeds/001-usuarios-desenvolvimento.sql`, somente em desenvolvimento.
 
-Os scripts `003` e `004` acompanham a definição dos contratos e ainda não criam operações na API. Em um banco que já tem usuários e sessões, aplicar somente os novos scripts. Scripts de estrutura já aplicados não devem ser editados para atualizar um banco existente; alterações posteriores usam novos scripts.
+Os scripts `003` e `004` acompanham a definição dos contratos. As operações de instrumentos e estoque que usam o `004` estão implementadas no backend; as de ensaios, sobre o `003`, ainda não. Em um banco que já tem usuários e sessões, aplicar somente os novos scripts. Scripts de estrutura já aplicados não devem ser editados para atualizar um banco existente; alterações posteriores usam novos scripts.
 
 ## Definições para implementação em paralelo
 
