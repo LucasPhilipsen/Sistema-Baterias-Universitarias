@@ -7,7 +7,10 @@ export const idValido = valor => Number.isInteger(valor) && valor >= 1 && valor 
 // Conta caracteres (code points), como o varchar do PostgreSQL, e não unidades UTF-16.
 export const contarCaracteres = texto => [...texto].length;
 
-export const dadosInvalidos = message => new ErroAplicacao(400, 'DADOS_INVALIDOS', message);
+// O PostgreSQL não armazena U+0000 em colunas de texto; sem esta checagem, a gravação geraria erro 500.
+export const contemCaractereNulo = texto => texto.includes('\u0000');
+
+export const dadosInvalidos =message => new ErroAplicacao(400, 'DADOS_INVALIDOS', message);
 
 export function lerCorpo(corpo, camposPermitidos) {
   if (corpo === null || typeof corpo !== 'object' || Array.isArray(corpo)) {

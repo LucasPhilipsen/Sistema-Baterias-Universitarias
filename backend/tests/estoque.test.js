@@ -328,6 +328,51 @@ test('estoque: inclui tipos sem unidades e conta como números', async t => {
   assert.equal(codigo(await chamar('GET', '/api/estoque?tipoInstrumentoId=1')), 'DADOS_INVALIDOS');
 });
 
+test('caractere nulo em nome e observações é recusado no cadastro e na edição', async t => {
+  const { chamar, tipos, instrumentos } = await preparar(t);
+  await chamar('POST', '/api/tipos-instrumentos', { corpo: { nome: 'Caixa' } });
+  await chamar('POST', '/api/instrumentos', { corpo: { tipoInstrumentoId: 1, identificacao: 'CAIXA-001', observacoes: 'Original' } });
+  const tentativas = [
+    ['POST', '/api/tipos-instrumentos', { nome: 'Sur\u0000do' }],
+    ['POST', '/api/tipos-instrumentos', { nome: '\u0000' }],
+    ['PUT', '/api/tipos-instrumentos/1', { nome: 'Caixa\u0000' }],
+    ['POST', '/api/instrumentos', { tipoInstrumentoId: 1, identificacao: 'CAIXA-002', observacoes: 'Pele\u0000nova' }],
+    ['POST', '/api/instrumentos', { tipoInstrumentoId: 1, identificacao: 'CAIXA\u0000002' }],
+    ['PUT', '/api/instrumentos/1', { tipoInstrumentoId: 1, identificacao: 'CAIXA-001', observacoes: '\u0000' }],
+  ];
+  for (const [metodo, caminho, corpo] of tentativas) {
+    const resposta = await chamar(metodo, caminho, { corpo });
+    assert.equal(resposta.status, 400, `${metodo} ${caminho} ${JSON.stringify(corpo)}`);
+    assert.equal(codigo(resposta), 'DADOS_INVALIDOS');
+  }
+  assert.deepEqual([...tipos.dados.values()].map(tipo => tipo.nome), ['Caixa']);
+  assert.deepEqual([...instrumentos.dados.values()].map(i => i.toJSON().observacoes), ['Original']);
+});
+
+test('parâmetros de consulta desconhecidos são recusados em consultas individuais, cadastros e edições', async t => {
+  const { chamar, tipos, instrumentos } = await preparar(t);
+  await chamar('POST', '/api/tipos-instrumentos', { corpo: { nome: 'Caixa' } });
+  await chamar('POST', '/api/instrumentos', { corpo: { tipoInstrumentoId: 1, identificacao: 'CAIXA-001' } });
+  const tentativas = [
+    ['GET', '/api/tipos-instrumentos/1?outro=1'],
+    ['GET', '/api/tipos-instrumentos/999?outro=1'],
+    ['POST', '/api/tipos-instrumentos?outro=1', { nome: 'Surdo' }],
+    ['PUT', '/api/tipos-instrumentos/1?nome=Surdo', { nome: 'Surdo' }],
+    ['GET', '/api/instrumentos/1?outro=1'],
+    ['GET', '/api/instrumentos/1?situacao=DISPONIVEL'],
+    ['POST', '/api/instrumentos?situacao=EMPRESTADO', { tipoInstrumentoId: 1, identificacao: 'CAIXA-002' }],
+    ['PUT', '/api/instrumentos/1?outro=1', { tipoInstrumentoId: 1, identificacao: 'CAIXA-009' }],
+  ];
+  for (const [metodo, caminho, corpo] of tentativas) {
+    const resposta = await chamar(metodo, caminho, { corpo });
+    assert.equal(resposta.status, 400, `${metodo} ${caminho}`);
+    assert.equal(codigo(resposta), 'DADOS_INVALIDOS', `${metodo} ${caminho}`);
+  }
+  assert.deepEqual([...tipos.dados.values()].map(tipo => tipo.nome), ['Caixa']);
+  assert.deepEqual([...instrumentos.dados.values()].map(i => i.identificacao), ['CAIXA-001']);
+  assert.equal((await chamar('GET', '/api/instrumentos/1')).status, 200, 'Sem parâmetros, a consulta continua permitida.');
+});
+
 test('permissões: consultas exigem sessão e alterações exigem diretoria, JSON e mesma origem', async t => {
   const { chamar, tipos, instrumentos, base } = await preparar(t);
   await chamar('POST', '/api/tipos-instrumentos', { corpo: { nome: 'Caixa' } });

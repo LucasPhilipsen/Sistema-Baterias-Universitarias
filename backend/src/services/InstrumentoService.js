@@ -4,6 +4,7 @@ import { criarComDados, dadosInvalidos, lerCorpo, lerFiltros, lerIdUrl } from '.
 
 const naoEncontrado = () => new ErroAplicacao(404, 'INSTRUMENTO_NAO_ENCONTRADO', 'Instrumento não encontrado.');
 
+// Somente a listagem aceita filtros; nas demais rotas, qualquer parâmetro de consulta é recusado com 400.
 export class InstrumentoService {
   constructor(instrumentos) {
     this.instrumentos = instrumentos;
@@ -20,19 +21,23 @@ export class InstrumentoService {
     return this.instrumentos.listar({ tipoInstrumentoId, situacao });
   }
 
-  async consultar(idUrl) {
-    const instrumento = await this.instrumentos.buscarPorId(lerIdUrl(idUrl));
+  async consultar(idUrl, query) {
+    const id = lerIdUrl(idUrl);
+    lerFiltros(query);
+    const instrumento = await this.instrumentos.buscarPorId(id);
     if (!instrumento) throw naoEncontrado();
     return instrumento;
   }
 
   // A situação não é aceita no corpo: toda unidade nova começa DISPONIVEL.
-  async cadastrar(corpo) {
+  async cadastrar(corpo, query) {
+    lerFiltros(query);
     return this.instrumentos.criar(this.#lerInstrumento(corpo));
   }
 
-  async atualizar(idUrl, corpo) {
+  async atualizar(idUrl, corpo, query) {
     const id = lerIdUrl(idUrl);
+    lerFiltros(query);
     const instrumento = await this.instrumentos.atualizar(id, this.#lerInstrumento(corpo));
     if (!instrumento) throw naoEncontrado();
     return instrumento;

@@ -1,4 +1,4 @@
-import { contarCaracteres, idValido } from '../validacao/entrada.js';
+import { contarCaracteres, contemCaractereNulo, idValido } from '../validacao/entrada.js';
 
 export const SituacaoInstrumento = Object.freeze({
   DISPONIVEL: 'DISPONIVEL',
@@ -36,6 +36,9 @@ export class Instrumento {
     const observacoesNormalizadas = observacoes?.trim() || null;
     if (observacoesNormalizadas && contarCaracteres(observacoesNormalizadas) > 500) {
       throw new TypeError('Observações devem ter até 500 caracteres.');
+    }
+    if (observacoesNormalizadas && contemCaractereNulo(observacoesNormalizadas)) {
+      throw new TypeError('Observações contêm caracteres não permitidos.');
     }
 
     this.#id = id;

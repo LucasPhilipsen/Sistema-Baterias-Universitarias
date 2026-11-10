@@ -8,15 +8,15 @@ export class InstrumentoController {
   }
 
   async consultar(req, res) {
-    res.status(200).json({ instrumento: await this.servico.consultar(req.params.id) });
+    res.status(200).json({ instrumento: await this.servico.consultar(req.params.id, req.query) });
   }
 
   async cadastrar(req, res) {
-    const instrumento = await this.servico.cadastrar(req.body);
+    const instrumento = await this.servico.cadastrar(req.body, req.query);
     res.status(201).location(`/api/instrumentos/${instrumento.id}`).json({ instrumento });
   }
 
   async atualizar(req, res) {
-    res.status(200).json({ instrumento: await this.servico.atualizar(req.params.id, req.body) });
+    res.status(200).json({ instrumento: await this.servico.atualizar(req.params.id, req.body, req.query) });
   }
 }

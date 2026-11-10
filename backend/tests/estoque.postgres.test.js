@@ -196,6 +196,28 @@ test('estoque completo com PostgreSQL descartável', { skip: process.env.ESTOQUE
     assert.equal(depois.corpo.estoque.find(item => item.tipoInstrumentoId === ids.Caixa).nome, 'Caixa de guerra', 'Usa o nome atual do tipo.');
   });
 
+  await t.test('entrada: caractere nulo e parâmetros desconhecidos retornam 400 sem gravar', async () => {
+    const instrumentosAntes = (await banco.query('SELECT * FROM instrumentos ORDER BY id')).rows;
+    const tiposAntes = (await banco.query('SELECT * FROM tipos_instrumentos ORDER BY id')).rows;
+    const tentativas = [
+      ['POST', '/api/tipos-instrumentos', { nome: 'Cuí\u0000ca' }],
+      ['PUT', `/api/tipos-instrumentos/${ids.Surdo}`, { nome: 'Surdo\u0000' }],
+      ['POST', '/api/instrumentos', { tipoInstrumentoId: ids.Surdo, identificacao: 'SURDO-009', observacoes: 'Pele\u0000nova' }],
+      ['PUT', `/api/instrumentos/${ids['SURDO-001']}`, { tipoInstrumentoId: ids.Surdo, identificacao: 'SURDO-001', observacoes: '\u0000' }],
+      ['GET', `/api/instrumentos/${ids['CAIXA-001']}?outro=1`],
+      ['GET', `/api/tipos-instrumentos/${ids.Surdo}?outro=1`],
+      ['POST', '/api/instrumentos?outro=1', { tipoInstrumentoId: ids.Surdo, identificacao: 'SURDO-009' }],
+      ['PUT', `/api/tipos-instrumentos/${ids.Surdo}?outro=1`, { nome: 'Surdo de primeira' }],
+    ];
+    for (const [metodo, caminho, corpo] of tentativas) {
+      const resposta = await chamar(metodo, caminho, corpo);
+      assert.equal(resposta.status, 400, `${metodo} ${caminho}`);
+      assert.equal(resposta.corpo.error.code, 'DADOS_INVALIDOS', `${metodo} ${caminho}`);
+    }
+    assert.deepEqual((await banco.query('SELECT * FROM instrumentos ORDER BY id')).rows, instrumentosAntes);
+    assert.deepEqual((await banco.query('SELECT * FROM tipos_instrumentos ORDER BY id')).rows, tiposAntes);
+  });
+
   await t.test('permissões: integrante consulta e não altera o banco', async () => {
     const antes = (await banco.query('SELECT * FROM instrumentos ORDER BY id')).rows;
     const tiposAntes = (await banco.query('SELECT * FROM tipos_instrumentos ORDER BY id')).rows;
