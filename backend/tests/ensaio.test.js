@@ -5,6 +5,7 @@ import { Ensaio, SituacaoEnsaio } from '../src/entities/Ensaio.js';
 import { Usuario } from '../src/entities/Usuario.js';
 import { EnsaioService } from '../src/services/EnsaioService.js';
 import { AuthService } from '../src/services/AuthService.js';
+import { EnsaioRepository } from '../src/repositories/EnsaioRepository.js';
 
 const hashDemo = 'scrypt$131072$8$1$0123456789abcdef0123456789abcdef$0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 
@@ -276,41 +277,52 @@ test('Ensaio e EnsaioService: recusa instantes cujo ano UTC saia do intervalo 19
   );
 });
 
-// Regressão Bug 2: EnsaioRepository ramo sem connect() deve usar this.banco.query
-test('EnsaioRepository (ramo sem connect): atualizar retorna cancelado quando situação for CANCELADO', async () => {
-  // O EnsaioRepositoryEmMemoria (definido no topo deste arquivo) não possui connect(),
-  // exercitando o ramo else de EnsaioRepository. Usamos EnsaioRepositoryEmMemoria diretamente.
-  const repo = new EnsaioRepositoryEmMemoria([
-    { id: 1, inicioEm: '2026-11-10T22:00:00Z', local: 'Quadra', situacao: 'CANCELADO' },
-  ]);
+test('EnsaioRepository sem connect: atualiza ensaio agendado usando query', async t => {
+  const inicioEm = new Date('2026-12-01T18:00:00Z');
+  const respostas = [
+    { rows: [{ id: 1, situacao: 'AGENDADO' }] },
+    { rows: [{ id: 1, inicio_em: inicioEm, local: 'Galpão', descricao: 'Novo desc', situacao: 'AGENDADO' }] },
+  ];
+  const banco = { query: t.mock.fn(async () => respostas.shift()) };
+  const repo = new EnsaioRepository(banco);
+  const resultado = await repo.atualizar(1, {
+    inicioEm,
+    local: 'Galpão',
+    descricao: 'Novo desc',
+  });
+
+  assert.equal(resultado.encontrado, true);
+  assert.equal(resultado.cancelado, false);
+  assert.ok(resultado.ensaio instanceof Ensaio);
+  assert.equal(resultado.ensaio.local, 'Galpão');
+  assert.equal(resultado.ensaio.descricao, 'Novo desc');
+  assert.equal(resultado.ensaio.inicioEm, inicioEm.toISOString());
+  assert.equal(banco.query.mock.callCount(), 2);
+  assert.deepEqual(banco.query.mock.calls[1].arguments[1], [inicioEm, 'Galpão', 'Novo desc', 1]);
+});
+
+test('EnsaioRepository sem connect: não atualiza ensaio cancelado', async t => {
+  const banco = { query: t.mock.fn(async () => ({ rows: [{ id: 1, situacao: 'CANCELADO' }] })) };
+  const repo = new EnsaioRepository(banco);
   const resultado = await repo.atualizar(1, {
     inicioEm: new Date('2026-11-10T22:00:00Z'),
     local: 'Nova Quadra',
     descricao: null,
   });
-  assert.equal(resultado.encontrado, true);
-  assert.equal(resultado.cancelado, true);
+  assert.deepEqual(resultado, { encontrado: true, cancelado: true });
+  assert.equal(banco.query.mock.callCount(), 1);
+});
 
-  // Atualização em ensaio agendado deve retornar o ensaio atualizado
-  const repo2 = new EnsaioRepositoryEmMemoria([
-    { id: 1, inicioEm: '2026-11-10T22:00:00Z', local: 'Quadra', situacao: 'AGENDADO' },
-  ]);
-  const resultado2 = await repo2.atualizar(1, {
-    inicioEm: new Date('2026-12-01T18:00:00Z'),
-    local: 'Galpão',
-    descricao: 'Novo desc',
-  });
-  assert.equal(resultado2.encontrado, true);
-  assert.equal(resultado2.cancelado, false);
-  assert.equal(resultado2.ensaio.local, 'Galpão');
-
-  // ID inexistente retorna encontrado: false
-  const resultadoNaoEncontrado = await repo2.atualizar(999, {
+test('EnsaioRepository sem connect: não atualiza ensaio inexistente', async t => {
+  const banco = { query: t.mock.fn(async () => ({ rows: [] })) };
+  const repo = new EnsaioRepository(banco);
+  const resultado = await repo.atualizar(999, {
     inicioEm: new Date('2026-12-01T18:00:00Z'),
     local: 'Galpão',
     descricao: null,
   });
-  assert.equal(resultadoNaoEncontrado.encontrado, false);
+  assert.deepEqual(resultado, { encontrado: false });
+  assert.equal(banco.query.mock.callCount(), 1);
 });
 
 // ==================== TESTES DE API: AUTENTICAÇÃO E PERMISSÕES ====================
