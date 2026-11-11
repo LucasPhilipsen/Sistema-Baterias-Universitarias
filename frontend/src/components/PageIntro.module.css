@@ -1,6 +1,6 @@
 .intro h1 { margin-block: 0 32px; }
 .eyebrow { margin: 0 0 24px; color: var(--muted); font-size: 14px; line-height: 1.4; font-weight: 400; letter-spacing: -.01em; }
-.description { max-width: var(--intro-description-width, 660px); margin: 0; font-size: 20px; line-height: 1.45; }
+.description { max-width: var(--intro-description-width, 660px); margin: 0; font-size: var(--intro-description-size, 20px); line-height: 1.45; }
 .hero h1 { max-width: 760px; }
-.hero .description { max-width: 560px; font-size: 22px; }
-@media (max-width: 600px) { .hero .description { font-size: 20px; } }
+.hero .description { font-family: 'Ranade', sans-serif; font-weight: 400; max-width: var(--intro-description-width, 560px); font-size: var(--intro-description-size, 22px); }
+@media (max-width: 600px) { .hero .description { font-size: var(--intro-description-size, 20px); } }

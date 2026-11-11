@@ -52,7 +52,9 @@ test('WebGL indisponível preserva a imagem e a navegação', async ({ page }) =
   await expect(wave.locator('canvas')).toHaveAttribute('data-ready', 'false');
   await expect(wave.locator('picture')).toHaveCSS('opacity', '1');
   await expect.poll(() => wave.locator('img').evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true);
-  await page.getByRole('link', { name: 'Explorar ensaios' }).click();
+  const menu = page.getByRole('button', { name: 'Abrir menu', exact: true });
+  if (await menu.isVisible()) await menu.click();
+  await page.getByRole('navigation').getByRole('link', { name: 'Ensaios', exact: true }).click();
   await expect(page).toHaveURL(/\/acesso$/);
   await expect(page.getByRole('heading', { name: /Entre no ritmo/ })).toBeVisible();
 });

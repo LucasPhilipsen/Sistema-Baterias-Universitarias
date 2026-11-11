@@ -1,0 +1,79 @@
+@font-face {
+  font-family: 'Ranade';
+  font-style: normal;
+  font-weight: 100;
+  font-display: swap;
+  src: url('/fonts/ranade/Ranade-Thin.otf') format('opentype');
+}
+
+@font-face {
+  font-family: 'Ranade';
+  font-style: italic;
+  font-weight: 100;
+  font-display: swap;
+  src: url('/fonts/ranade/Ranade-ThinItalic.otf') format('opentype');
+}
+
+@font-face {
+  font-family: 'Ranade';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('/fonts/ranade/Ranade-Light.otf') format('opentype');
+}
+
+@font-face {
+  font-family: 'Ranade';
+  font-style: italic;
+  font-weight: 300;
+  font-display: swap;
+  src: url('/fonts/ranade/Ranade-LightItalic.otf') format('opentype');
+}
+
+@font-face {
+  font-family: 'Ranade';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/ranade/Ranade-Regular.otf') format('opentype');
+}
+
+@font-face {
+  font-family: 'Ranade';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/ranade/Ranade-Italic.otf') format('opentype');
+}
+
+@font-face {
+  font-family: 'Ranade';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/ranade/Ranade-Medium.otf') format('opentype');
+}
+
+@font-face {
+  font-family: 'Ranade';
+  font-style: italic;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/ranade/Ranade-MediumItalic.otf') format('opentype');
+}
+
+@font-face {
+  font-family: 'Ranade';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/ranade/Ranade-Bold.otf') format('opentype');
+}
+
+@font-face {
+  font-family: 'Ranade';
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/ranade/Ranade-BoldItalic.otf') format('opentype');
+}

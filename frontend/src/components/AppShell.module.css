@@ -1,8 +1,5 @@
-.main, .footer { max-width: var(--page-max-width); margin-inline: auto; padding-inline: var(--page-gutter); }
-.main { padding-block: var(--page-padding-top) var(--page-padding-bottom); min-height: calc(100svh - var(--navigation-height) - 66px); }
+.main { max-width: var(--page-max-width); margin-inline: auto; padding-inline: var(--page-gutter); padding-block: var(--page-padding-top) var(--page-padding-bottom); min-height: calc(100svh - var(--navigation-height)); }
 .main:focus { outline: none; }
 .main.fullWidth { max-width: none; padding-top: 0; padding-inline: 0; }
-.footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding-block: 24px; border-top: 1px solid var(--border); background: var(--color-mist); color: var(--muted); font-size: 12px; line-height: 1.5; }
 .skip { position: absolute; top: -100px; left: 24px; padding: 16px; background: var(--color-pure-white); z-index: 20; border-radius: var(--radius-buttons); }
 .skip:focus { top: 16px; }
-@media (max-width: 480px) { .footer { flex-direction: column; gap: 4px; } }

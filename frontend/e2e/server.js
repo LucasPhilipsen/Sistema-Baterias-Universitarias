@@ -1,5 +1,5 @@
-// Servidor exclusivo dos testes: rotas, scrypt e cookie reais da SCRUM-23;
-// repositórios em memória, sem acesso nem alterações ao PostgreSQL da aplicação.
+// Servidor exclusivo dos testes: rotas, scrypt e cookie reais.
+// Persistência em memória por padrão; PostgreSQL descartável somente por opt-in.
 import { readFile } from 'node:fs/promises';
 import { createServer } from 'vite';
 import { createApp } from '../../backend/src/app.js';
@@ -8,6 +8,7 @@ import { AuthService } from '../../backend/src/services/AuthService.js';
 import { SenhaService } from '../../backend/src/services/SenhaService.js';
 import { exigirAutenticacao, exigirDiretoria } from '../../backend/src/middlewares/autenticacao.js';
 import { errorHandler } from '../../backend/src/middlewares/errorHandler.js';
+import { memoryEnsaios } from './support/ensaios-memory.js';
 
 if (process.env.NODE_ENV !== 'test') throw new Error('Este servidor só pode ser usado em testes.');
 
@@ -30,8 +31,11 @@ const authService = new AuthService({
   },
   senhas: new SenhaService(),
 });
-const app = createApp({ authService, limiteTentativas: 1000 });
-app.get('/api/e2e/diretoria', exigirAutenticacao(authService), exigirDiretoria, (req, res) => res.json({ permitido: true }));
+const services = process.env.ENSAIOS_E2E_POSTGRES === '1'
+  ? await (await import('./support/postgres.js')).postgresServices()
+  : { authService, ensaioService: memoryEnsaios() };
+const app = createApp({ authService: services.authService, ensaioService: services.ensaioService, limiteTentativas: 1000 });
+app.get('/api/e2e/diretoria', exigirAutenticacao(services.authService), exigirDiretoria, (req, res) => res.json({ permitido: true }));
 app.use(errorHandler);
 const api = app.listen(0, '127.0.0.1');
 await new Promise(resolve => api.once('listening', resolve));
@@ -47,6 +51,7 @@ async function close() {
   await vite.close();
   api.closeAllConnections();
   api.close();
+  await services.close?.();
 }
 process.on('SIGINT', close);
 process.on('SIGTERM', close);

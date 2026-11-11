@@ -1,0 +1,21 @@
+{
+  "family": "Ranade",
+  "source": "Arquivos fornecidos por Pedro em ranade-font-family",
+  "reference": "https://befonts.com/ranade-font-family.html",
+  "license": "Personal Use Only",
+  "licenseFile": "frontend/public/fonts/ranade/Befonts-License.txt",
+  "directory": "frontend/public/fonts/ranade/",
+  "format": "OpenType",
+  "styles": {
+    "100 normal": "Ranade-Thin.otf",
+    "100 italic": "Ranade-ThinItalic.otf",
+    "300 normal": "Ranade-Light.otf",
+    "300 italic": "Ranade-LightItalic.otf",
+    "400 normal": "Ranade-Regular.otf",
+    "400 italic": "Ranade-Italic.otf",
+    "500 normal": "Ranade-Medium.otf",
+    "500 italic": "Ranade-MediumItalic.otf",
+    "700 normal": "Ranade-Bold.otf",
+    "700 italic": "Ranade-BoldItalic.otf"
+  }
+}

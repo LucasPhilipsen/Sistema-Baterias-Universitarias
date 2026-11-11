@@ -9,6 +9,7 @@ import { useAuth } from './auth/AuthContext.jsx';
 import { canAccess, profileLabel } from './auth/access.js';
 import { RequireAuth, SessionUnavailable } from './auth/RequireAuth.jsx';
 import Login from './pages/Login.jsx';
+import Ensaios from './pages/Ensaios.jsx';
 import styles from './App.module.css';
 
 const modules = [
@@ -26,13 +27,9 @@ function Home() {
       <RibbonWave extendToHeader />
       <div className={styles.introContent}>
         <section className={styles.hero} aria-labelledby="home-title">
-          <PageIntro id="home-title" variant="hero" eyebrow="Gestão da bateria universitária"
-            title={<>Cada ensaio começa<br />com organização.</>}
+          <PageIntro id="home-title" className={styles.heroIntro} variant="hero"
+            title="Cada ensaio começa com organização."
             description="A agenda, os instrumentos e a sua bateria. Tudo no mesmo ritmo, em um só lugar.">
-            <div className={styles.actions}>
-              <ActionLink to="/ensaios" arrow>Explorar ensaios</ActionLink>
-              <ActionLink to="/instrumentos" variant="secondary">Consultar instrumentos</ActionLink>
-            </div>
             {usuario && <p className={styles.heroNote}>{usuario.nome} · {profileLabel(usuario.perfil)}</p>}
           </PageIntro>
         </section>
@@ -40,7 +37,7 @@ function Home() {
       </div>
     </div>
     <section className={styles.modules} aria-labelledby="modules-title">
-      <div className={styles.sectionHeading}><h2 id="modules-title">Cada coisa no seu lugar.</h2><p>Da preparação ao próximo encontro.</p></div>
+      <div className={styles.sectionHeading}><h2 id="modules-title">Onde se formam campeãs.</h2></div>
       <ModuleGrid modules={visibleModules} />
     </section>
   </>;
@@ -50,7 +47,7 @@ function Administration() {
   return <section aria-labelledby="administration-title">
     <PageIntro className={styles.pageIntro} id="administration-title" eyebrow="Diretoria" title="Organize o próximo encontro."
       description="Acompanhe os módulos de gestão da sua bateria." />
-    <Message>As operações de gestão de ensaios e instrumentos estarão disponíveis nas próximas entregas.</Message>
+    <Message>A agenda de ensaios está disponível para gestão. As operações de instrumentos estarão disponíveis na próxima entrega.</Message>
     <ModuleGrid modules={modules.filter(module => module.path !== '/acesso')} />
   </section>;
 }
@@ -72,7 +69,8 @@ export default function App() {
       <Route path="/" element={<Home />} />
       <Route path="/acesso" element={<Login />} />
       <Route element={<RequireAuth key={location.key} />}>
-        {modules.filter(module => module.path !== '/acesso').map(module => <Route key={module.path} path={module.path} element={<Placeholder module={module} />} />)}
+        <Route path="/ensaios" element={<Ensaios />} />
+        <Route path="/instrumentos" element={<Placeholder module={modules.find(module => module.path === '/instrumentos')} />} />
         <Route path="/administracao" element={<Administration />} />
       </Route>
       <Route path="*" element={<><PageIntro title="Página não encontrada" description="Confira o endereço ou volte para o início." className={styles.pageIntro} /><ActionLink to="/" variant="secondary">Voltar ao início</ActionLink></>} />
