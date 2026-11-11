@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { dbPool } from '../../../backend/src/config/database.js';
 import { env } from '../../../backend/src/config/env.js';
 import { authService } from '../../../backend/src/config/autenticacao.js';
+import { ensaioService } from '../../../backend/src/config/ensaios.js';
 import { criarServicosEstoque } from '../../../backend/src/config/estoque.js';
 
 export async function postgresEstoque() {
@@ -18,5 +19,5 @@ export async function postgresEstoque() {
   for (const [identificacao, situacao] of [['E2E-DISPONIVEL', 'DISPONIVEL'], ['E2E-EMPRESTADO', 'EMPRESTADO'], ['E2E-MANUTENCAO', 'EM_MANUTENCAO']]) {
     await dbPool.query('INSERT INTO instrumentos(tipo_instrumento_id, identificacao, situacao) VALUES ($1, $2, $3)', [caixa.id, identificacao, situacao]);
   }
-  return { authService, estoque: criarServicosEstoque(dbPool), close: () => dbPool.end() };
+  return { authService, ensaioService, estoque: criarServicosEstoque(dbPool), close: () => dbPool.end() };
 }

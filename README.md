@@ -8,7 +8,7 @@ Nosso projeto é uma aplicação web para gerenciar integrantes, instrumentos, e
 
 Na **Sprint 1 — Ajustes iniciais do projeto**, organizamos o repositório, definimos as tecnologias e o escopo e preparamos o backlog.
 
-Estamos na **Sprint 2 — 04 a 11/11/2026**. Nesta etapa, vamos desenvolver o acesso ao sistema por perfil, a agenda de ensaios e o cadastro e a consulta de estoque. A base Express e a conexão com PostgreSQL foram implementadas na SCRUM-20. A SCRUM-22 prepara o modelo de usuários, os perfis e os dados fictícios de acesso. As demais funcionalidades serão integradas conforme as respectivas tarefas forem entregues.
+Na **Sprint 2 — 04 a 11/11/2026**, entregamos o acesso ao sistema por perfil, a agenda de ensaios e o cadastro e a consulta de estoque, com interface React, API Express e PostgreSQL integrados. Diretoria cadastra e altera os registros; integrantes consultam. Os resultados e os limites dos testes estão no [registro da integração](docs/integracao-sprint-2.md) e na [Wiki](https://github.com/LucasPhilipsen/Sistema-Baterias-Universitarias/wiki).
 
 ## Tecnologias definidas
 
@@ -41,7 +41,7 @@ Todos vamos contribuir com a documentação das nossas partes, e Giovani vai org
 ## Organização
 
 ```text
-frontend/          interface React, acesso, sessão e navegação por perfil
+frontend/          interface React, acesso, sessão, agenda e estoque
 backend/           API Express, entidades e testes
 database/          scripts PostgreSQL, dados fictícios e testes
 docs/              documentação técnica das tecnologias
@@ -74,7 +74,7 @@ CREATE DATABASE bateria_db;
 ```
 *(Opcional: para os testes com banco isolado, crie também `CREATE DATABASE bateria_test_db;`)*
 
-Após criar o banco, aplique os scripts de usuários e sessões. A ordem, as contas fictícias e os comandos estão em [usuários e dados iniciais](database/README.md) e no [contrato de autenticação](docs/autenticacao.md#preparar-e-testar).
+Após criar o banco, aplique os scripts `001` a `004`, nessa ordem, e as contas fictícias de desenvolvimento. Os comandos estão no [guia do banco](database/README.md) e na [Wiki de execução local](https://github.com/LucasPhilipsen/Sistema-Baterias-Universitarias/wiki/Execucao-local).
 
 ### 2. Instalar dependências
 Entre na pasta `backend/` e instale os pacotes:

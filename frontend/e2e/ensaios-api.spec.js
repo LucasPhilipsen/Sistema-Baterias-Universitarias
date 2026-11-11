@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { postgresTestPool } from './support/postgres-pool.js';
 
 test.use({ timezoneId: 'Asia/Tokyo' });
 
@@ -84,8 +85,8 @@ test('diretoria cadastra, edita e cancela com confirmação HTTP, nova consulta 
   const conflict = await page.request.put(`/api/ensaios/${ensaio.id}`, { data: payload });
   expect(conflict.status()).toBe(409);
   expect(await conflict.json()).toMatchObject({ error: { code: 'ENSAIO_CANCELADO' } });
-  if (process.env.ENSAIOS_E2E_POSTGRES === '1') {
-    const { dbPool } = await import('../../backend/src/config/database.js');
+  if (process.env.ENSAIOS_E2E_POSTGRES === '1' || process.env.ESTOQUE_E2E_POSTGRES === '1') {
+    const dbPool = postgresTestPool();
     try {
       const result = await dbPool.query('SELECT inicio_em, local, descricao, situacao FROM ensaios WHERE id = $1', [ensaio.id]);
       expect(result.rows[0]).toMatchObject({ local: editedName, descricao: null, situacao: 'CANCELADO' });

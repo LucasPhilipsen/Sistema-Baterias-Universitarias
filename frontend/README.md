@@ -247,3 +247,31 @@ O [registro da SCRUM-32](../docs/scrum-32-validacao.md) detalha a versão, os
 cenários reais, os simulados e as pendências da entrega.
 
 Execute os modos PostgreSQL de ensaios e estoque separadamente, com apenas a variável de ativação do modo escolhido e um banco vazio com o prefixo correspondente.
+
+### Conferência conjunta — SCRUM-29, SCRUM-33 e SCRUM-34
+
+O modo `ESTOQUE_E2E_POSTGRES=1` prepara os quatro scripts e usa os serviços
+reais de autenticação, ensaios e estoque. Para executar a suíte completa no
+banco descartável configurado acima, defina também `NODE_ENV=test`:
+
+```powershell
+$env:NODE_ENV = 'test'
+$env:ESTOQUE_E2E_POSTGRES = '1'
+$env:PLAYWRIGHT_CHANNEL = 'chrome'
+try {
+  npm run test:e2e
+} finally {
+  Remove-Item Env:NODE_ENV, Env:ESTOQUE_E2E_POSTGRES, Env:PLAYWRIGHT_CHANNEL
+}
+```
+
+Use um banco vazio a cada rodada. Para executar somente os novos cenários,
+use `npm run test:e2e -- integracao.postgres`. Sem o opt-in, esses cenários
+aparecem como ignorados e não acessam PostgreSQL.
+
+`integracao.postgres.spec.js` altera sessão e perfil diretamente no banco
+descartável, retendo o envio até concluir a alteração e depois encaminhando a
+requisição à API real. Não fabrica respostas `401` ou `403`. Confere também
+que a gravação recusada não alterou o registro, a navegação entre módulos,
+o logout persistido, a unicidade global, o vínculo com tipo e as contagens.
+Os testes de falhas simuladas dos módulos continuam explicitamente simulados.

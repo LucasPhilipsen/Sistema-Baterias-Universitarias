@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { postgresTestPool } from './support/postgres-pool.js';
 import { loginInstrumentos } from './support/login-instrumentos.js';
 
 test('diretoria cadastra e edita tipos e unidades, com IDs da API, teclado e persistência', async ({ page }, testInfo) => {
@@ -84,7 +85,7 @@ test('diretoria cadastra e edita tipos e unidades, com IDs da API, teclado e per
   const queried = await page.request.get(`/api/instrumentos/${unidade.id}`);
   expect(await queried.json()).toMatchObject({ instrumento: { id: unidade.id, tipoInstrumentoId: target.id, observacoes: null, situacao: 'DISPONIVEL' } });
   if (process.env.ESTOQUE_E2E_POSTGRES === '1') {
-    const { dbPool } = await import('../../backend/src/config/database.js');
+    const dbPool = postgresTestPool();
     try {
       const { rows: [row] } = await dbPool.query('SELECT tipo_instrumento_id, identificacao, observacoes, situacao FROM instrumentos WHERE id = $1', [unidade.id]);
       expect(row).toEqual({ tipo_instrumento_id: target.id, identificacao: identity.toUpperCase(), observacoes: null, situacao: 'DISPONIVEL' });

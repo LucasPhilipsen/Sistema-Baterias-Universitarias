@@ -1,6 +1,6 @@
 # Contratos de ensaios e estoque — Sprint 2
 
-Definição preparada na SCRUM-34 para orientar a implementação de Vitor, Felipe e Pedro. Os scripts de modelagem acompanham este documento. As rotas de instrumentos e estoque foram implementadas no backend na SCRUM-31; as de ensaios ainda precisam ser implementadas e validadas, e a presença do contrato não indica que estão disponíveis na API. A integração com as telas continua pendente nos dois módulos.
+Contrato compartilhado de ensaios e estoque da Sprint 2. As rotas dos backends SCRUM-27 e SCRUM-31 e as telas SCRUM-28 e SCRUM-32 estão implementadas e integradas. Os scripts de modelagem acompanham este documento; os resultados da conferência de interface, API e PostgreSQL estão no [registro da integração](integracao-sprint-2.md).
 
 ## Convenções compartilhadas
 

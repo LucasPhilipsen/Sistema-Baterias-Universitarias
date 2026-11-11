@@ -85,6 +85,11 @@ O comando e os requisitos para repetir com um banco vazio estão no
 
 ## Pendências da entrega
 
+A conferência complementar de sessão, perfil e integração com estoque foi
+concluída em 11/11/2026 e está no [registro da SCRUM-34](integracao-sprint-2.md#fluxos-completos--11112026).
+As pendências abaixo registram os limites da entrega original; o resultado
+atual dos cenários integrados está nesse registro.
+
 - Preparação e conferência do ambiente de destino, incluindo banco e proxy.
   A validação local não confirma uma publicação ou banco compartilhado.
 - Expiração/revogação e mudança de perfil provocadas diretamente no banco

@@ -123,6 +123,11 @@ de estoque com PostgreSQL real também passaram.
 
 ## Pendências para a entrega
 
+A conferência complementar de sessão, perfil e integração com ensaios foi
+concluída em 11/11/2026 e está no [registro da SCRUM-34](integracao-sprint-2.md#fluxos-completos--11112026).
+As pendências abaixo registram os limites da entrega original; o resultado
+atual dos cenários integrados está nesse registro.
+
 - Conferir o ambiente de destino e a configuração de banco/proxy; os testes
   locais não confirmam uma publicação nem um ambiente compartilhado.
 - Revogação/expiração de sessão e alteração de perfil diretamente no banco

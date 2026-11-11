@@ -1,6 +1,6 @@
 # Integração de acesso, ensaios e estoque — SCRUM-34
 
-Este documento reúne o contrato de acesso já implementado e o roteiro para integrar ensaios e estoque na Sprint 2. A preparação pode avançar enquanto os módulos são desenvolvidos. A validação final depende das APIs e das telas conectadas ao banco.
+Este documento reúne o contrato de acesso e a validação de ensaios e estoque da Sprint 2. As APIs e as telas dos dois módulos estão implementadas e conectadas ao PostgreSQL. O registro histórico da base de acesso e a conferência dos fluxos completos ficam ao final.
 
 ## Referências e responsabilidades
 
@@ -26,7 +26,7 @@ const dados = await session.request(caminho, { signal });
 await session.request(caminho, { method: 'POST', body: dadosDoFormulario });
 ```
 
-`caminho`, o formato dos dados e o método de cada operação seguem os [contratos de ensaios e estoque](contratos-sprint-2.md). Esses exemplos mostram o cliente compartilhado. As rotas de instrumentos e estoque já estão disponíveis no backend (SCRUM-31); as de ensaios ainda precisam ser implementadas.
+`caminho`, o formato dos dados e o método de cada operação seguem os [contratos de ensaios e estoque](contratos-sprint-2.md). Esses exemplos mostram o cliente compartilhado, utilizado pelas telas dos dois módulos e suas APIs (SCRUM-27 e SCRUM-31).
 
 - O cliente envia JSON e o navegador envia o cookie na mesma origem. A interface não precisa ler nem armazenar o token.
 - Um `401` de uma chamada autenticada encerra o estado de sessão na interface e exige novo login.
@@ -61,7 +61,7 @@ O preparo do ambiente está no [README](../README.md), no [guia do banco](../dat
 4. `database/004-criar-instrumentos.sql`;
 5. dados fictícios de `database/seeds/001-usuarios-desenvolvimento.sql`, somente em desenvolvimento.
 
-Os scripts `003` e `004` acompanham a definição dos contratos. As operações de instrumentos e estoque que usam o `004` estão implementadas no backend; as de ensaios, sobre o `003`, ainda não. Em um banco que já tem usuários e sessões, aplicar somente os novos scripts. Scripts de estrutura já aplicados não devem ser editados para atualizar um banco existente; alterações posteriores usam novos scripts.
+Os scripts `003` e `004` acompanham a definição dos contratos e são usados pelas operações de ensaios e estoque implementadas. Em um banco que já tem usuários e sessões, aplicar somente os novos scripts. Scripts de estrutura já aplicados não devem ser editados para atualizar um banco existente; alterações posteriores usam novos scripts.
 
 ## Definições para implementação em paralelo
 
@@ -119,7 +119,7 @@ Foram aprovados 11 cenários de conferência, cobrindo:
 
 O perfil alterado durante a conferência foi restaurado no banco de testes. Identidade e token não foram encontrados no armazenamento local do navegador; a resposta de sessão expôs somente `id`, `nome`, `email` e `perfil`.
 
-Os casos I08 a I14 permanecem pendentes das APIs e telas dos módulos. A restrição da página administrativa conferida em I04 não comprova a proteção de operações de ensaios ou estoque, que ainda precisam ser verificadas diretamente na API.
+Na conferência de 07/11, os casos I08 a I14 ainda dependiam das APIs e telas dos módulos. A restrição da página administrativa conferida em I04, isoladamente, não comprovava a proteção dessas operações. A conferência de 11/11 abaixo cobre os módulos implementados.
 
 ### Continuação da validação
 
@@ -130,4 +130,52 @@ Ao executar o roteiro, registrar versão, data, ambiente, perfil, passos, result
 - Vitor acompanha regras, persistência e rotas de ensaios.
 - Felipe acompanha regras, persistência e rotas de estoque.
 
-A SCRUM-34 só estará concluída após o repasse dos contratos, a conferência das duas áreas integradas e o tratamento das falhas encontradas.
+A conclusão da SCRUM-34 considera os contratos compartilhados, a conferência das duas áreas integradas e o tratamento das falhas encontradas.
+
+### Fluxos completos — 11/11/2026
+
+Base funcional: `main` em `cb0ce9f`, com os PRs #10, #12, #13 e #14 integrados.
+A correção do teste do repositório de ensaios foi incorporada em `5bc07c2`.
+Ambiente de conferência: Node.js 24, Chrome e PostgreSQL 18, com React/Vite e
+Express reais. Os scripts `001` a `004` e as contas fictícias foram aplicados
+somente em banco novo de uma instância descartável em loopback.
+
+| Verificação | Resultado |
+| --- | --- |
+| Backend, `npm test` | 56 aprovados; 3 integrações opcionais ignoradas na suíte padrão |
+| Frontend, `npm test` | 33 aprovados |
+| Frontend, `npm run build` | Aprovado |
+| Suíte completa de navegador com opt-in PostgreSQL | 115 aprovados; 1 cenário exclusivo de menu móvel ignorado no desktop |
+| Fluxos dos módulos com respostas reais | 4 cenários de ensaios, 8 de estoque e 16 de integração, incluídos na suíte completa |
+
+| Roteiro / tarefa | Resultado observado |
+| --- | --- |
+| I01 a I05 | Login dos dois perfis, restauração após recarga, navegação entre módulos, restrição administrativa e logout; remoção da sessão persistida conferida por SQL |
+| I06, I07, I12 e I13 | Expiração, revogação e perda de perfil alteradas no PostgreSQL durante o envio de edição em cada módulo; API real respondeu 401 ou 403, interface exigiu login ou retirou a gestão, sem anunciar sucesso |
+| I08 e I09 / SCRUM-29 | Cadastro, edição e cancelamento pela interface, persistência após recarga e SQL, cancelamento idempotente, edição de cancelado recusada e integrante sem poder alterar |
+| I10 e I11 / SCRUM-33 | Cadastro e edição de tipos e unidades, filtros, duplicidades, vínculo válido e contagens por situação; tipos zerados presentes e integrante sem poder alterar |
+| I14 | Formulários inválidos recusados, correção e novo envio válidos; mensagens não expõem detalhes internos |
+| SCRUM-34 | Os dois perfis percorrem ensaios e estoque com o mesmo cliente de sessão; requisições recusadas após mudança no banco mantêm os registros intactos |
+
+Nos cenários novos, o teste retém somente o envio, altera sessão ou perfil no
+banco descartável e encaminha a requisição à API. Não fabrica a resposta HTTP.
+As consultas SQL confirmam que a tentativa recusada não alterou o registro;
+o perfil de demonstração é restaurado ao fim de cada caso. Cada conferência SQL
+usa seu próprio pool, separado dos serviços da aplicação e dos demais testes.
+
+Os 18 cenários de falhas da agenda e os 24 de falhas do estoque continuam usando
+simulações explícitas, mesmo na execução com PostgreSQL. Eles não comprovam
+falhas provocadas no banco. Os limites de cada suíte são preservados nos
+registros das SCRUM-28 e SCRUM-32. A validação é local e não representa uma
+publicação em ambiente compartilhado.
+
+As evidências automatizadas ficam em `frontend/e2e/ensaios-api.spec.js`,
+`instrumentos-api.spec.js` e `integracao.postgres.spec.js`; capturas e rastros
+ficam em `frontend/test-results/`, fora do Git. A repetição exige banco vazio
+com prefixo `bateria_frontend_estoque_test_`, `NODE_ENV=test`, conexão no
+ambiente e `ESTOQUE_E2E_POSTGRES=1`, conforme o README do frontend.
+
+Não foram encontrados defeitos funcionais pendentes nos critérios das três
+histórias desta Sprint. Gestão de integrantes, confirmações, presença,
+empréstimos, manutenções e comparação de demanda permanecem nas histórias
+planejadas para as próximas Sprints.
