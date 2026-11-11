@@ -9,6 +9,7 @@ import { SenhaService } from '../../backend/src/services/SenhaService.js';
 import { exigirAutenticacao, exigirDiretoria } from '../../backend/src/middlewares/autenticacao.js';
 import { errorHandler } from '../../backend/src/middlewares/errorHandler.js';
 import { memoryEnsaios } from './support/ensaios-memory.js';
+import { memoryEstoque } from './support/estoque-memory.js';
 
 if (process.env.NODE_ENV !== 'test') throw new Error('Este servidor só pode ser usado em testes.');
 
@@ -31,10 +32,12 @@ const authService = new AuthService({
   },
   senhas: new SenhaService(),
 });
-const services = process.env.ENSAIOS_E2E_POSTGRES === '1'
+const services = process.env.ESTOQUE_E2E_POSTGRES === '1'
+  ? await (await import('./support/estoque-postgres.js')).postgresEstoque()
+  : process.env.ENSAIOS_E2E_POSTGRES === '1'
   ? await (await import('./support/postgres.js')).postgresServices()
-  : { authService, ensaioService: memoryEnsaios() };
-const app = createApp({ authService: services.authService, ensaioService: services.ensaioService, limiteTentativas: 1000 });
+  : { authService, ensaioService: memoryEnsaios(), estoque: await memoryEstoque() };
+const app = createApp({ authService: services.authService, ensaioService: services.ensaioService, estoque: services.estoque, limiteTentativas: 1000 });
 app.get('/api/e2e/diretoria', exigirAutenticacao(services.authService), exigirDiretoria, (req, res) => res.json({ permitido: true }));
 app.use(errorHandler);
 const api = app.listen(0, '127.0.0.1');

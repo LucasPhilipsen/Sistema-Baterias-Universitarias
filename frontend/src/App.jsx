@@ -10,6 +10,7 @@ import { canAccess, profileLabel } from './auth/access.js';
 import { RequireAuth, SessionUnavailable } from './auth/RequireAuth.jsx';
 import Login from './pages/Login.jsx';
 import Ensaios from './pages/Ensaios.jsx';
+import Instrumentos from './pages/Instrumentos.jsx';
 import styles from './App.module.css';
 
 const modules = [
@@ -47,7 +48,7 @@ function Administration() {
   return <section aria-labelledby="administration-title">
     <PageIntro className={styles.pageIntro} id="administration-title" eyebrow="Diretoria" title="Organize o próximo encontro."
       description="Acompanhe os módulos de gestão da sua bateria." />
-    <Message>A agenda de ensaios está disponível para gestão. As operações de instrumentos estarão disponíveis na próxima entrega.</Message>
+    <Message>A agenda de ensaios e o cadastro de tipos e unidades estão disponíveis para gestão.</Message>
     <ModuleGrid modules={modules.filter(module => module.path !== '/acesso')} />
   </section>;
 }
@@ -70,7 +71,7 @@ export default function App() {
       <Route path="/acesso" element={<Login />} />
       <Route element={<RequireAuth key={location.key} />}>
         <Route path="/ensaios" element={<Ensaios />} />
-        <Route path="/instrumentos" element={<Placeholder module={modules.find(module => module.path === '/instrumentos')} />} />
+        <Route path="/instrumentos" element={<Instrumentos />} />
         <Route path="/administracao" element={<Administration />} />
       </Route>
       <Route path="*" element={<><PageIntro title="Página não encontrada" description="Confira o endereço ou volte para o início." className={styles.pageIntro} /><ActionLink to="/" variant="secondary">Voltar ao início</ActionLink></>} />

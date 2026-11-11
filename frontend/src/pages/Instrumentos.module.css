@@ -1,0 +1,34 @@
+.page { display: grid; gap: 48px; }
+.section { display: grid; align-content: start; gap: 24px; min-width: 0; }
+.actions, .filters, .unitHeading { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.actions { margin-top: 24px; }
+.note { margin: 0; color: var(--muted); font-size: 14px; }
+.summary, .units { list-style: none; margin: 0; padding: 0; }
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 16px; }
+.summaryCard, .unit, .panel { border: 1px solid var(--border); border-radius: var(--radius-cards); padding: 24px; min-width: 0; overflow-wrap: anywhere; }
+.summaryCard { display: flex; flex-direction: column; gap: 24px; height: 100%; }
+.summaryCard button { align-self: flex-start; margin-top: auto; }
+.counts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 0; }
+.counts dt { color: var(--muted); font-size: 13px; }
+.counts dd { margin: 4px 0 0; font-size: 28px; font-weight: 400; }
+.available { color: var(--brand); }
+.units { display: grid; gap: 16px; }
+.filters { align-items: end; }
+.filter, .field { display: grid; gap: 8px; min-width: 0; font-size: 14px; }
+.filter { flex: 1 1 180px; }
+.field { margin-bottom: 24px; }
+.field small { color: var(--muted); }
+.field .error { color: var(--color-error); }
+.field select, .field textarea, .filter select { width: 100%; min-width: 0; max-width: 100%; min-height: var(--control-height); padding: 12px; border: 1px solid var(--color-lavender-border); border-radius: var(--radius-buttons); background: var(--color-pure-white); color: var(--text); font: inherit; font-size: 16px; }
+.field textarea { resize: vertical; }
+.field select:disabled, .field textarea:disabled, .filter select:disabled { background: var(--color-mist); color: var(--muted); }
+.field [aria-invalid='true'] { border-color: var(--color-error); }
+.unit { display: grid; justify-items: start; gap: 16px; }
+.unitHeading { width: 100%; justify-content: space-between; }
+.badge { border: 1px solid currentColor; border-radius: var(--radius-cards); padding: 4px 12px; font-size: 13px; font-weight: 400; }
+.observations { margin: 0; white-space: pre-wrap; }
+.panel { background: var(--color-mist); }
+.panel h2 { margin-bottom: 32px; }
+.panel form { max-width: 760px; }
+.situation { font-size: 14px; color: var(--muted); }
+@media (max-width: 480px) { .summaryCard, .unit, .panel { padding: 20px; } .unitHeading { align-items: start; } }

@@ -1,0 +1,187 @@
+import { test, expect } from '@playwright/test';
+import { loginInstrumentos } from './support/login-instrumentos.js';
+
+test('diretoria cadastra e edita tipos e unidades, com IDs da API, teclado e persistência', async ({ page }, testInfo) => {
+  await loginInstrumentos(page);
+  const tipoName = `Tipo ${testInfo.project.name} ${Date.now()}`;
+  await page.getByRole('button', { name: 'Cadastrar tipo', exact: true }).click();
+  const nome = page.getByLabel('Nome do tipo (obrigatório)', { exact: true });
+  await page.getByRole('button', { name: 'Salvar tipo' }).click();
+  await expect(nome).toBeFocused();
+  await expect(nome).toHaveAttribute('aria-invalid', 'true');
+  await nome.fill(`  ${tipoName}  `);
+  const createdType = page.waitForResponse(response => response.url().endsWith('/api/tipos-instrumentos') && response.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Salvar tipo' }).click();
+  const typeResponse = await createdType;
+  expect(typeResponse.status()).toBe(201);
+  expect(typeResponse.request().postDataJSON()).toEqual({ nome: tipoName });
+  const { tipoInstrumento: tipo } = await typeResponse.json();
+  expect(tipo.id).toBeGreaterThan(1);
+  await expect(page.getByText('Tipo cadastrado com sucesso.', { exact: true })).toBeVisible();
+  const createdTypeCard = page.getByRole('region', { name: 'Disponibilidade por tipo', exact: true }).getByRole('article').filter({ has: page.getByRole('heading', { name: tipoName, exact: true }) });
+  await expect(page.getByRole('heading', { name: 'Tipos de instrumentos', exact: true })).toHaveCount(0);
+  await createdTypeCard.getByRole('button', { name: `Editar tipo ${tipoName}`, exact: true }).click();
+  const renamed = `${tipoName} revisado`;
+  await nome.fill(renamed);
+  const editedType = page.waitForResponse(response => response.url().endsWith(`/api/tipos-instrumentos/${tipo.id}`) && response.request().method() === 'PUT');
+  await page.getByRole('button', { name: 'Salvar tipo' }).click();
+  expect((await editedType).status()).toBe(200);
+  await expect(page.getByText('Tipo atualizado com sucesso.', { exact: true })).toBeVisible();
+  const summaryCard = page.getByRole('region', { name: 'Disponibilidade por tipo', exact: true }).getByRole('article').filter({ has: page.getByRole('heading', { name: renamed, exact: true }) });
+  await expect(summaryCard).toBeVisible();
+  await expect(summaryCard.locator('dd')).toHaveText(['0', '0', '0', '0']);
+  await page.getByRole('button', { name: 'Cadastrar unidade', exact: true }).click();
+  const form = page.locator('form');
+  const tipoSelect = page.getByLabel('Tipo de instrumento (obrigatório)', { exact: true });
+  await tipoSelect.selectOption({ label: renamed });
+  await expect(tipoSelect).toHaveValue(String(tipo.id));
+  const identificacao = page.getByLabel('Identificação (obrigatório)', { exact: true });
+  await page.getByRole('button', { name: 'Salvar unidade' }).click();
+  await expect(identificacao).toBeFocused();
+  const identity = `u-${testInfo.project.name}-${Date.now()}`;
+  await identificacao.fill(identity);
+  await identificacao.focus();
+  await page.keyboard.press('Tab');
+  const observacoes = page.getByLabel('Observações', { exact: true });
+  await expect(observacoes).toBeFocused();
+  await observacoes.fill('  Pele revisada  ');
+  await expect(form.locator('[name="situacao"]')).toHaveCount(0);
+  await expect(form.getByText('Toda unidade nova começa disponível.', { exact: false })).toBeVisible();
+  const viewport = page.viewportSize();
+  await page.setViewportSize({ width: 320, height: 800 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath('unidade-form-320.png'), fullPage: true });
+  await page.setViewportSize(viewport);
+  const createdUnit = page.waitForResponse(response => response.url().endsWith('/api/instrumentos') && response.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Salvar unidade' }).focus();
+  await page.keyboard.press('Enter');
+  const unitResponse = await createdUnit;
+  expect(unitResponse.status()).toBe(201);
+  expect(unitResponse.request().postDataJSON()).toEqual({ tipoInstrumentoId: tipo.id, identificacao: identity.toUpperCase(), observacoes: 'Pele revisada' });
+  const { instrumento: unidade } = await unitResponse.json();
+  expect(unidade.situacao).toBe('DISPONIVEL');
+  await expect(page.getByText('Unidade cadastrada com sucesso.', { exact: true })).toBeVisible();
+  await expect(summaryCard.locator('dd')).toHaveText(['1', '1', '0', '0']);
+  const card = page.getByRole('article').filter({ has: page.getByRole('heading', { name: identity.toUpperCase(), exact: true }) });
+  await page.reload();
+  await expect(card).toContainText(renamed);
+  const targetName = `Destino ${testInfo.project.name} ${Date.now()}`;
+  const targetResponse = await page.request.post('/api/tipos-instrumentos', { data: { nome: targetName } });
+  expect(targetResponse.status()).toBe(201);
+  const { tipoInstrumento: target } = await targetResponse.json();
+  await page.getByRole('button', { name: 'Atualizar consultas' }).click();
+  await card.getByRole('button', { name: `Editar unidade ${identity.toUpperCase()}` }).click();
+  await tipoSelect.selectOption({ label: targetName });
+  await observacoes.fill('');
+  const updatedUnit = page.waitForResponse(response => response.url().endsWith(`/api/instrumentos/${unidade.id}`) && response.request().method() === 'PUT');
+  await page.getByRole('button', { name: 'Salvar unidade' }).click();
+  const updated = await updatedUnit;
+  expect(updated.status()).toBe(200);
+  expect(updated.request().postDataJSON()).toEqual({ tipoInstrumentoId: target.id, identificacao: identity.toUpperCase(), observacoes: null });
+  await expect(page.getByText('Unidade atualizada com sucesso.', { exact: true })).toBeVisible();
+  await page.reload();
+  await expect(card).toContainText(targetName);
+  const queried = await page.request.get(`/api/instrumentos/${unidade.id}`);
+  expect(await queried.json()).toMatchObject({ instrumento: { id: unidade.id, tipoInstrumentoId: target.id, observacoes: null, situacao: 'DISPONIVEL' } });
+  if (process.env.ESTOQUE_E2E_POSTGRES === '1') {
+    const { dbPool } = await import('../../backend/src/config/database.js');
+    try {
+      const { rows: [row] } = await dbPool.query('SELECT tipo_instrumento_id, identificacao, observacoes, situacao FROM instrumentos WHERE id = $1', [unidade.id]);
+      expect(row).toEqual({ tipo_instrumento_id: target.id, identificacao: identity.toUpperCase(), observacoes: null, situacao: 'DISPONIVEL' });
+      expect((await dbPool.query('SELECT nome FROM tipos_instrumentos WHERE id = $1', [tipo.id])).rows[0].nome).toBe(renamed);
+    } finally { await dbPool.end(); }
+  }
+  expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
+  await page.screenshot({ path: testInfo.outputPath('estoque-diretoria.png'), fullPage: true });
+});
+
+test('integrante consulta resumo, situações, filtros combinados e recebe 403 nas quatro alterações', async ({ page }, testInfo) => {
+  await loginInstrumentos(page, 'integrante');
+  await expect(page.getByRole('button', { name: /^Cadastrar / })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^Editar / })).toHaveCount(0);
+  const tipos = (await (await page.request.get('/api/tipos-instrumentos')).json()).tiposInstrumentos;
+  const tipo = tipos.find(tipo => tipo.nome === 'Caixa de teste');
+  const unidades = (await (await page.request.get(`/api/instrumentos?tipoInstrumentoId=${tipo.id}`)).json()).instrumentos;
+  const count = situacao => String(unidades.filter(unidade => unidade.situacao === situacao).length);
+  const summary = page.getByRole('region', { name: 'Disponibilidade por tipo', exact: true });
+  const seedSummary = summary.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Caixa de teste', exact: true }) });
+  await expect(seedSummary.locator('dd')).toHaveText([count('DISPONIVEL'), String(unidades.length), count('EMPRESTADO'), count('EM_MANUTENCAO')]);
+  await expect(summary.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Tipo sem unidades', exact: true }) }).locator('dd')).toHaveText(['0', '0', '0', '0']);
+  await page.getByLabel('Filtrar por tipo', { exact: true }).selectOption({ label: 'Caixa de teste' });
+  const request = page.waitForResponse(response => response.url().includes('/api/instrumentos?') && new URL(response.url()).searchParams.get('situacao') === 'EMPRESTADO');
+  await page.getByLabel('Filtrar por situação', { exact: true }).selectOption('EMPRESTADO');
+  const response = await request;
+  const params = new URL(response.url()).searchParams;
+  expect(params.has('tipoInstrumentoId')).toBe(true);
+  await expect(page.getByRole('heading', { name: 'E2E-EMPRESTADO', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'E2E-DISPONIVEL', exact: true })).toHaveCount(0);
+  await page.getByLabel('Filtrar por situação', { exact: true }).selectOption('EM_MANUTENCAO');
+  await expect(page.getByRole('heading', { name: 'E2E-MANUTENCAO', exact: true })).toBeVisible();
+  await page.getByLabel('Filtrar por tipo', { exact: true }).selectOption({ label: 'Tipo sem unidades' });
+  await expect(page.getByText('Nenhuma unidade encontrada com esses filtros.')).toBeVisible();
+  await page.getByRole('button', { name: 'Limpar filtros' }).click();
+  await expect(page.getByRole('heading', { name: 'E2E-DISPONIVEL', exact: true })).toBeVisible();
+  const original = unidades.find(unidade => unidade.identificacao === 'E2E-EMPRESTADO');
+  const payload = { tipoInstrumentoId: tipo.id, identificacao: 'NEGADO-001', observacoes: null };
+  for (const [method, path, data] of [
+    ['POST', '/api/tipos-instrumentos', { nome: 'Negado' }], ['PUT', `/api/tipos-instrumentos/${tipo.id}`, { nome: 'Negado' }],
+    ['POST', '/api/instrumentos', payload], ['PUT', `/api/instrumentos/${original.id}`, payload],
+  ]) {
+    const result = await page.request.fetch(path, { method, data });
+    expect(result.status()).toBe(403);
+    expect(await result.json()).toMatchObject({ error: { code: 'ACESSO_NEGADO' } });
+  }
+  expect((await (await page.request.get(`/api/instrumentos/${original.id}`)).json()).instrumento).toEqual(original);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath('estoque-integrante.png'), fullPage: true });
+});
+
+test('unidade indisponível permite corrigir texto, mantém situação e bloqueia troca de tipo', async ({ page }) => {
+  await loginInstrumentos(page);
+  await page.getByRole('button', { name: 'Editar unidade E2E-EMPRESTADO', exact: true }).click();
+  const form = page.locator('form');
+  const type = form.getByLabel('Tipo de instrumento (obrigatório)', { exact: true });
+  await expect(type).toBeDisabled();
+  await expect(form.locator('[name="situacao"]')).toHaveCount(0);
+  await expect(form.getByText('A situação é consultada e não é alterada por este formulário.', { exact: false })).toBeVisible();
+  await form.getByLabel('Observações', { exact: true }).fill('Conferido sem trocar o tipo');
+  const saved = page.waitForResponse(response => /\/api\/instrumentos\/\d+$/.test(response.url()) && response.request().method() === 'PUT');
+  await form.getByRole('button', { name: 'Salvar unidade' }).click();
+  const response = await saved;
+  expect(response.status()).toBe(200);
+  const { instrumento } = await response.json();
+  expect(instrumento.situacao).toBe('EMPRESTADO');
+  expect(response.request().postDataJSON()).not.toHaveProperty('situacao');
+  const tipos = (await (await page.request.get('/api/tipos-instrumentos')).json()).tiposInstrumentos;
+  const other = tipos.find(tipo => tipo.nome === 'Tipo sem unidades');
+  const body = { tipoInstrumentoId: other.id, identificacao: instrumento.identificacao, observacoes: null };
+  const conflict = await page.request.put(`/api/instrumentos/${instrumento.id}`, { data: body });
+  expect(conflict.status()).toBe(409);
+  expect(await conflict.json()).toMatchObject({ error: { code: 'INSTRUMENTO_INDISPONIVEL' } });
+  const refusedStatus = await page.request.put(`/api/instrumentos/${instrumento.id}`, { data: { ...body, tipoInstrumentoId: instrumento.tipoInstrumentoId, situacao: 'DISPONIVEL' } });
+  expect(refusedStatus.status()).toBe(400);
+  await page.getByRole('button', { name: 'Editar unidade E2E-MANUTENCAO', exact: true }).click();
+  await expect(type).toBeDisabled();
+});
+
+test('duplicidades reais são exibidas nos campos e o formulário recupera após correção', async ({ page }, testInfo) => {
+  await loginInstrumentos(page);
+  await page.getByRole('button', { name: 'Cadastrar tipo', exact: true }).click();
+  const nome = page.getByLabel('Nome do tipo (obrigatório)', { exact: true });
+  await nome.fill('CAIXA DE TESTE');
+  await page.getByRole('button', { name: 'Salvar tipo' }).click();
+  await expect(nome).toHaveAttribute('aria-invalid', 'true');
+  await expect(page.getByRole('alert')).toContainText('A operação foi recusada.');
+  await page.getByRole('button', { name: 'Fechar formulário' }).click();
+  await page.getByRole('button', { name: 'Cadastrar unidade', exact: true }).click();
+  await page.getByLabel('Tipo de instrumento (obrigatório)', { exact: true }).selectOption({ label: 'Caixa de teste' });
+  const identification = page.getByLabel('Identificação (obrigatório)', { exact: true });
+  await identification.fill('e2e-disponivel');
+  await page.getByRole('button', { name: 'Salvar unidade' }).click();
+  await expect(identification).toHaveAttribute('aria-invalid', 'true');
+  await expect(page.getByText('Já existe uma unidade com essa identificação.')).toBeVisible();
+  await expect(page.getByText('Unidade cadastrada com sucesso.', { exact: true })).toHaveCount(0);
+  await identification.fill(`REC-${testInfo.project.name}-${Date.now()}`);
+  await page.getByRole('button', { name: 'Salvar unidade' }).click();
+  await expect(page.getByText('Unidade cadastrada com sucesso.', { exact: true })).toBeVisible();
+});
