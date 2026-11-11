@@ -1,4 +1,4 @@
-# Interface — acesso, sessão e agenda (SCRUM-24 e SCRUM-28)
+# Interface — acesso, sessão, ensaios e estoque (SCRUM-24, SCRUM-28 e SCRUM-32)
 
 JavaScript, React 19, Vite 8 e CSS Modules. Requer Node.js 24 LTS e npm.
 
@@ -8,7 +8,7 @@ A página inicial apresenta título e subtítulo ampliados, com navegação pela
 
 ## Executar com a API
 
-Prepare o backend e o PostgreSQL conforme o [README da raiz](../README.md) e o [contrato da SCRUM-23](../docs/autenticacao.md). Aplique usuários, sessões e, no ambiente de desenvolvimento, as contas fictícias. Inicie o backend em http://localhost:3000.
+Prepare o backend e o PostgreSQL conforme o [README da raiz](../README.md) e o [contrato da SCRUM-23](../docs/autenticacao.md). Aplique os scripts de estrutura `001` a `004` e, no ambiente de desenvolvimento, as contas fictícias. Inicie o backend em http://localhost:3000.
 
 Em outro terminal, na raiz do repositório:
 
@@ -38,7 +38,7 @@ O formulário usa `POST /api/auth/login`, envia somente `email` e `senha` e most
 - A entrada e a saída da conta são comunicadas às outras abas por BroadcastChannel quando disponível. A revalidação ao retomar a aba e nas rotas também funciona sem esse recurso.
 - Integrantes acessam `/ensaios` e `/instrumentos`; diretoria também acessa `/administracao`. O destino padrão após login é `/ensaios` para integrante e `/administracao` para diretoria. O destino anterior é recuperado somente se for interno, conhecido e permitido.
 - A área da diretoria tem proteção de rota, inclusive ao digitar a URL ou recarregar. Sessão ausente redireciona para `/acesso`; perfil sem permissão recebe uma mensagem de acesso restrito. Enquanto a sessão é verificada, o conteúdo protegido não é exibido. Perfis desconhecidos e falhas na consulta bloqueiam o acesso.
-- As operações administrativas continuam protegidas pelos componentes intermediários de autorização da SCRUM-23 no servidor. A página administrativa é uma entrada para os módulos. A agenda da SCRUM-28 permite gerir ensaios; o cadastro de instrumentos e estoque fica para a SCRUM-32.
+- As operações administrativas continuam protegidas pelos componentes intermediários de autorização da SCRUM-23 no servidor. A página administrativa é uma entrada para os módulos. A agenda da SCRUM-28 permite gerir ensaios; o módulo da SCRUM-32 permite cadastrar e editar tipos e unidades e consultar o estoque.
 
 ## Organização e integração dos próximos módulos
 
@@ -85,6 +85,41 @@ O backend da SCRUM-27 e os scripts `001`, `002` e `003` são necessários para
 usar a agenda. A disponibilidade deve ser conferida no ambiente de destino;
 a implementação da tela não substitui a preparação desse ambiente.
 
+## Instrumentos e estoque — SCRUM-32
+
+`/instrumentos` apresenta os tipos nos cards de disponibilidade e uma lista de unidades. Integrantes
+consultam as listas, os três estados de uma unidade e os filtros de tipo e situação,
+que podem ser combinados. A diretoria também cadastra e edita tipos e unidades;
+a edição de cada tipo fica no próprio card de disponibilidade, sem uma lista separada.
+O resumo vem de `GET /estoque`, inclui tipos sem unidades e considera disponível
+somente a situação `DISPONIVEL`; os filtros da lista de unidades não alteram o
+resumo geral.
+
+Todos os pedidos passam por `session.request()` de `useAuth()`. Não há dados
+fictícios ou IDs de tipos fixos no código da aplicação: as opções do formulário
+e do filtro vêm de `GET /tipos-instrumentos`. As alterações usam `POST` ou
+`PUT`, enviando somente `nome` para tipos ou `tipoInstrumentoId` numérico,
+`identificacao` e `observacoes` para unidades.
+
+A situação é somente de consulta. Unidades novas começam disponíveis; o
+formulário de edição bloqueia a troca de tipo de unidades emprestadas ou em
+manutenção, mas permite corrigir identificação e observações. A API continua
+responsável por validar permissões e a situação atual ao gravar. Não há
+exclusão, empréstimo, devolução nem manutenção nesta entrega.
+
+O frontend valida nomes com até 80 caracteres, identificação ASCII com até 40
+caracteres e observações com até 500 caracteres, normalizando espaços e
+maiúsculas conforme o contrato. Mostra carregamento, vazio, validação por campo,
+duplicidade, tipo inexistente, conflito de situação, acesso negado e falha de
+conexão. Uma alteração só é anunciada como concluída depois da resposta válida
+da API; em falha de rede, consulte novamente antes de repetir o envio. Consultas
+antigas de filtros são canceladas e não substituem respostas mais recentes.
+
+Arquivos principais: `src/pages/Instrumentos.jsx`, `InstrumentoForm.jsx`,
+`instrumentos.js`, `useStockQuery.js` e `Instrumentos.module.css`.
+O backend da SCRUM-31 e as estruturas `001`, `002` e `004` precisam estar
+disponíveis no ambiente. Preparar a tela não substitui conferir esse ambiente.
+
 ## Configuração e publicação
 
 `.env.example` documenta `VITE_API_BASE_URL`; vazio usa `/api`. Essa variável fica pública na versão compilada. Na configuração atual da API, use a mesma origem e um proxy reverso para `/api`: o servidor não habilita CORS e recusa entrada e saída de contas por outra origem. Uma URL externa exige alinhamento de CORS, cookies e origem com o responsável pela API.
@@ -124,7 +159,7 @@ npm run test:e2e
 Remove-Item Env:PLAYWRIGHT_CHANNEL
 ```
 
-A suíte inicia o Vite na porta 5174 e a API Express em uma porta local livre. Por padrão, usa rotas de autenticação e ensaios, validação scrypt, cookie e componentes intermediários reais com repositórios em memória: não acessa o banco da aplicação. O servidor `e2e/server.js` exige `NODE_ENV=test`; sua rota de teste da diretoria não integra a aplicação publicada. Falhas de rede, limite de tentativas e mudança de perfil são injetados apenas nos cenários correspondentes.
+A suíte inicia o Vite na porta 5174 e a API Express em uma porta local livre. Por padrão, usa rotas de autenticação, ensaios e estoque, validação scrypt, cookie e componentes intermediários reais com repositórios em memória: não acessa o banco da aplicação. O servidor `e2e/server.js` exige `NODE_ENV=test`; sua rota de teste da diretoria não integra a aplicação publicada. Falhas de rede, limite de tentativas e mudança de perfil são injetados apenas nos cenários correspondentes.
 
 Se esse mesmo servidor de testes já estiver rodando para conferência manual, defina `PLAYWRIGHT_REUSE_SERVER=1` para reutilizá-lo. Por padrão, a suíte exige a porta livre e gerencia seu próprio servidor.
 
@@ -172,3 +207,43 @@ para repetir. Não reutilize um servidor iniciado no modo em memória.
 
 O [registro da SCRUM-28](../docs/scrum-28-validacao.md) diferencia os ambientes,
 as evidências e as pendências desta entrega.
+
+### Estoque com API e PostgreSQL reais
+
+`e2e/instrumentos-api.spec.js` testa as operações HTTP sem interceptar as
+chamadas de tipos, unidades e estoque. Por padrão, somente a persistência é
+simulada. Para usar PostgreSQL 18 com os repositórios reais, crie um banco vazio
+e descartável chamado `bateria_frontend_estoque_test_<sufixo>`, configure sua
+conexão no ambiente e execute, a partir de `frontend/`:
+
+```powershell
+$env:DB_HOST = '127.0.0.1'
+$env:DB_PORT = '5432'
+$env:DB_NAME = 'bateria_frontend_estoque_test_sua_execucao'
+$env:DB_USER = 'postgres'
+# Defina DB_PASSWORD no ambiente local conforme sua instância de testes.
+$env:ESTOQUE_E2E_POSTGRES = '1'
+$env:PLAYWRIGHT_CHANNEL = 'chrome'
+try {
+  npm run test:e2e -- instrumentos-api
+} finally {
+  Remove-Item Env:ESTOQUE_E2E_POSTGRES, Env:PLAYWRIGHT_CHANNEL
+}
+```
+
+Esse modo recusa bancos fora do prefixo ou que já contenham tabelas públicas.
+Aplica os quatro scripts de estrutura e os usuários fictícios. Prepara um tipo
+com unidades nas três situações e outro tipo zerado, diretamente no banco de
+testes; a sequência de tipos começa em 73 para conferir IDs sem valores fixos
+na interface. O teste também verifica a persistência por SQL. Use outro banco
+vazio para repetir e descarte o banco de testes depois da execução. Não reutilize
+um servidor iniciado no modo em memória.
+
+`e2e/instrumentos-errors.spec.js` intercepta respostas e falhas explicitamente.
+Esses cenários não comprovam falhas reais provocadas no PostgreSQL, mesmo
+quando o servidor está configurado no modo de integração.
+
+O [registro da SCRUM-32](../docs/scrum-32-validacao.md) detalha a versão, os
+cenários reais, os simulados e as pendências da entrega.
+
+Execute os modos PostgreSQL de ensaios e estoque separadamente, com apenas a variável de ativação do modo escolhido e um banco vazio com o prefixo correspondente.
