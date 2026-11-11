@@ -7,6 +7,7 @@ margens, foco após navegação e link para pular ao conteúdo.
 | Componente | Uso | Configuração |
 | --- | --- | --- |
 | `AppShell` | Estrutura comum das páginas | `title`, `fullWidth`, `children` |
+| `Footer` | Rodapé comum com marca Flam grande, centralizada e fundo animado na paleta do RibbonWave | Sem propriedades; animação estática com movimento reduzido |
 | `PageIntro` | Título, descrição e rótulo das páginas | `id`, `eyebrow`, `title`, `description`, `variant`, `children` |
 | `Button` | Executar uma ação | `variant`, `size`, `type`, atributos nativos |
 | `ActionLink` | Navegar com aparência de botão | `to`, `variant`, `size`, `arrow`, atributos do link |
@@ -47,6 +48,7 @@ continuam centralizadas em `auth/access.js`, com autorização também na API.
 - `frontend/src/components/ui.module.css`: botões, links de ação e campos.
 - `frontend/src/components/PageIntro.module.css`: títulos e descrições comuns.
 - `frontend/src/components/AppShell.module.css`: estrutura geral das rotas.
+- `frontend/src/components/Footer.module.css`: composição do rodapé, tamanho da marca e movimento do gradiente; reutiliza a paleta local do RibbonWave e o `BrandLogo` original.
 
 Os módulos CSS de cada página cuidam apenas da composição específica. Use as
 variantes dos componentes para diferenças intencionais, preservando o padrão

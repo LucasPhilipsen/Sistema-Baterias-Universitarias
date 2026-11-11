@@ -8,7 +8,7 @@ async function openLoop(page) {
   return loop;
 }
 
-test('faixa mostra sete logos originais recortados no espaço entre as ações e os módulos', async ({ page }) => {
+test('faixa mostra sete logos originais recortados no espaço entre a abertura e os módulos', async ({ page }) => {
   const loop = await openLoop(page);
   const images = loop.locator('.logoloop__list:not([aria-hidden]) img');
   await expect(images).toHaveCount(7);
@@ -24,10 +24,10 @@ test('faixa mostra sete logos originais recortados no espaço entre as ações e
     return context.getImageData(0, 0, 1, 1).data[3];
   }));
   expect(alpha).toEqual([0, 0, 0, 0, 0, 0, 0]);
-  const actions = await page.getByRole('link', { name: 'Consultar instrumentos' }).boundingBox();
+  const intro = await page.getByRole('region', { name: 'Cada ensaio começa com organização.' }).boundingBox();
   const rail = await loop.boundingBox();
-  const modules = await page.getByRole('region', { name: 'Cada coisa no seu lugar.' }).boundingBox();
-  expect(rail.y).toBeGreaterThanOrEqual(actions.y + actions.height);
+  const modules = await page.locator('section[aria-labelledby="modules-title"]').boundingBox();
+  expect(rail.y).toBeGreaterThanOrEqual(intro.y + intro.height);
   expect(rail.y + rail.height).toBeLessThanOrEqual(modules.y);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });

@@ -24,4 +24,4 @@ Os arquivos visuais ficam em `public/ribbon-wave/`. A origem dos recursos está
 registrada na documentação técnica em `docs/assets-provenance/`, fora da aplicação.
 Os créditos dos algoritmos matemáticos permanecem nos programas de sombreamento.
 
-Na abertura, a ordem das camadas é logos (1), onda (2), texto e ações (3).
+Na abertura, a ordem das camadas é logos (1), onda (2) e texto (3).

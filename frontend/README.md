@@ -1,10 +1,10 @@
-# Interface — acesso e sessão (SCRUM-24)
+# Interface — acesso, sessão e agenda (SCRUM-24 e SCRUM-28)
 
 JavaScript, React 19, Vite 8 e CSS Modules. Requer Node.js 24 LTS e npm.
 
 A [direção visual](../docs/design.md) usa a identidade do Flam: branco, azul-marinho e índigo, fonte Söhne variável e Source Code Pro servidas localmente, divisórias finas e cantos de 4 px.
 
-A página inicial inclui uma faixa [LogoLoop](src/components/LogoLoop/README.md) com as sete baterias fornecidas, entre as ações principais e os módulos. Os logos têm 80 px, espaços de 128 px e rolagem contínua sem botões. A animação pausa somente sobre um logo, retoma ao sair, permite arraste e respeita movimento reduzido. As imagens finais com fundo transparente ficam em `public/logos/`, mantendo os pixels internos dos emblemas.
+A página inicial apresenta título e subtítulo ampliados, com navegação pela navbar e pelos módulos. A faixa [LogoLoop](src/components/LogoLoop/README.md) com as sete baterias fornecidas fica entre a abertura e os módulos. Os logos têm 80 px, espaços de 128 px e rolagem contínua sem botões. A animação pausa somente sobre um logo, retoma ao sair, permite arraste e respeita movimento reduzido. As imagens finais com fundo transparente ficam em `public/logos/`, mantendo os pixels internos dos emblemas.
 
 ## Executar com a API
 
@@ -38,7 +38,7 @@ O formulário usa `POST /api/auth/login`, envia somente `email` e `senha` e most
 - A entrada e a saída da conta são comunicadas às outras abas por BroadcastChannel quando disponível. A revalidação ao retomar a aba e nas rotas também funciona sem esse recurso.
 - Integrantes acessam `/ensaios` e `/instrumentos`; diretoria também acessa `/administracao`. O destino padrão após login é `/ensaios` para integrante e `/administracao` para diretoria. O destino anterior é recuperado somente se for interno, conhecido e permitido.
 - A área da diretoria tem proteção de rota, inclusive ao digitar a URL ou recarregar. Sessão ausente redireciona para `/acesso`; perfil sem permissão recebe uma mensagem de acesso restrito. Enquanto a sessão é verificada, o conteúdo protegido não é exibido. Perfis desconhecidos e falhas na consulta bloqueiam o acesso.
-- As operações administrativas continuam protegidas pelos componentes intermediários de autorização da SCRUM-23 no servidor. A página administrativa é uma entrada para os módulos; operações de gestão, ensaios e estoque serão implementadas nas tarefas correspondentes.
+- As operações administrativas continuam protegidas pelos componentes intermediários de autorização da SCRUM-23 no servidor. A página administrativa é uma entrada para os módulos. A agenda da SCRUM-28 permite gerir ensaios; o cadastro de instrumentos e estoque fica para a SCRUM-32.
 
 ## Organização e integração dos próximos módulos
 
@@ -59,6 +59,31 @@ const dados = await session.request('/caminho-do-modulo', { signal });
 ```
 
 Um `401` desse cliente limpa a identidade e encaminha o fluxo à tela de acesso. Um `403` reconsulta o perfil e continua sendo retornado ao módulo, que deve informar a falta de permissão. O corpo bruto do erro não deve ser mostrado ao usuário.
+
+## Agenda de ensaios — SCRUM-28
+
+`/ensaios` consulta a API real por `session.request()`, obtido com `useAuth()`.
+Os dois perfis consultam a agenda e filtram agendados, cancelados ou todos. A
+diretoria também cadastra e edita ensaios e confirma seu cancelamento. Cancelados
+continuam visíveis e não oferecem edição ou reabertura.
+
+Data e horário são preenchidos separadamente no fuso `America/Sao_Paulo`.
+`src/pages/ensaios.js` valida o calendário e calcula o instante usando as regras
+do fuso fornecidas por `Intl`; envia ISO 8601 em UTC com `Z`. A exibição e a
+edição usam explicitamente São Paulo, mesmo em computadores com outro fuso.
+Horários inexistentes no salto histórico de horário de verão são recusados;
+na hora repetida, é usada a primeira ocorrência. Edições somente de texto
+preservam os segundos e milissegundos do instante recebido.
+
+A interface trata carregamento, lista vazia, validações, falta de permissão,
+registro inexistente, conflito de cancelamento e falhas de conexão. Não mantém
+dados fictícios na aplicação nem confirma operações antes da resposta da API.
+Uma falha de rede durante uma alteração pode deixar o resultado desconhecido:
+a mensagem orienta consultar novamente a agenda antes de repetir o envio.
+
+O backend da SCRUM-27 e os scripts `001`, `002` e `003` são necessários para
+usar a agenda. A disponibilidade deve ser conferida no ambiente de destino;
+a implementação da tela não substitui a preparação desse ambiente.
 
 ## Configuração e publicação
 
@@ -99,7 +124,7 @@ npm run test:e2e
 Remove-Item Env:PLAYWRIGHT_CHANNEL
 ```
 
-A suíte inicia o Vite na porta 5174 e a API Express da SCRUM-23 em uma porta local livre. Usa rotas, validação scrypt, cookie e componentes intermediários reais com repositórios em memória: não acessa o banco da aplicação. O servidor `e2e/server.js` exige `NODE_ENV=test`; sua rota de teste da diretoria não integra a aplicação publicada. Falhas de rede, limite de tentativas e mudança de perfil são injetados apenas nos cenários correspondentes.
+A suíte inicia o Vite na porta 5174 e a API Express em uma porta local livre. Por padrão, usa rotas de autenticação e ensaios, validação scrypt, cookie e componentes intermediários reais com repositórios em memória: não acessa o banco da aplicação. O servidor `e2e/server.js` exige `NODE_ENV=test`; sua rota de teste da diretoria não integra a aplicação publicada. Falhas de rede, limite de tentativas e mudança de perfil são injetados apenas nos cenários correspondentes.
 
 Se esse mesmo servidor de testes já estiver rodando para conferência manual, defina `PLAYWRIGHT_REUSE_SERVER=1` para reutilizá-lo. Por padrão, a suíte exige a porta livre e gerencia seu próprio servidor.
 
@@ -110,3 +135,40 @@ A integração com PostgreSQL é uma verificação separada, documentada no cont
 Os padrões reutilizáveis e exemplos de composição estão em [Componentes da interface](../docs/frontend-components.md).
 
 O contrato compartilhado com ensaios e estoque e os cenários de validação estão em [Integração da Sprint 2](../docs/integracao-sprint-2.md).
+
+### Ensaios com API e PostgreSQL reais
+
+Os cenários `e2e/ensaios-api.spec.js` executam cadastro, edição, cancelamento,
+recarga, consulta e autorização HTTP sem interceptar as chamadas de ensaios.
+Por padrão, somente a persistência é simulada. `e2e/ensaios-errors.spec.js`
+intercepta respostas e falhas explicitamente; esses cenários não comprovam
+persistência no PostgreSQL.
+
+Para executar os fluxos com repositórios reais, crie um banco **vazio e
+descartável** chamado `bateria_frontend_test_<sufixo>` na sua instância de
+testes. Em `frontend/`, configure a conexão sem versionar a senha:
+
+```powershell
+$env:DB_HOST = '127.0.0.1'
+$env:DB_PORT = '5432'
+$env:DB_NAME = 'bateria_frontend_test_sua_execucao'
+$env:DB_USER = 'postgres'
+# Defina DB_PASSWORD no ambiente local conforme a instância de testes.
+$env:ENSAIOS_E2E_POSTGRES = '1'
+$env:PLAYWRIGHT_CHANNEL = 'chrome'
+try {
+  npm run test:e2e -- ensaios-api
+} finally {
+  Remove-Item Env:ENSAIOS_E2E_POSTGRES, Env:PLAYWRIGHT_CHANNEL
+}
+```
+
+Esse modo recusa nomes fora do prefixo e bancos que já tenham tabelas públicas.
+Aplica `001`, `002`, `003` e as contas fictícias, usando os serviços e
+repositórios da aplicação. Os testes também consultam o SQL para conferir o
+instante, textos, cancelamento e existência de sessões persistidas. Não apaga
+o banco; descarte-o depois pela rotina da sua instância e use outro banco vazio
+para repetir. Não reutilize um servidor iniciado no modo em memória.
+
+O [registro da SCRUM-28](../docs/scrum-28-validacao.md) diferencia os ambientes,
+as evidências e as pendências desta entrega.
