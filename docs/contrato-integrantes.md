@@ -60,3 +60,23 @@ No conflito de e-mail, a interface pode destacar o campo usando `EMAIL_DUPLICADO
 - **Pedro e Lucas, em empréstimos:** a diretoria consulta `GET /api/integrantes`. O seletor mostra o `nome` e usa `id` como valor. O backend de empréstimos valida no banco, na gravação, que o ID aponta para uma conta `INTEGRANTE`. Ambos usam a referência `usuarios.id`.
 
 Na validação da entrega, conferir cadastro, edição, recarga, login da nova conta, conflito de e-mail, recusa para integrante e uso do mesmo ID no seletor de empréstimos.
+
+## Executar e testar a API (SCRUM-40)
+
+A API utiliza a estrutura já aplicada pelos scripts `001-criar-usuarios.sql` e `002-criar-sessoes.sql`. A partir de `backend/`, use `npm run dev` com a conexão configurada no `.env`. O preparo do banco e as contas de demonstração estão no [guia de autenticação](autenticacao.md#preparar-e-testar).
+
+Rode `npm test` em `backend/` para executar a suíte padrão. Para conferir as rotas com PostgreSQL, crie um banco vazio e descartável com prefixo `bateria_integrantes_test_` e configure `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` e `DB_PASSWORD` no ambiente ou em `backend/.env.test`. O teste aplica as tabelas e os dados de demonstração nesse banco. Use outro banco vazio para repetir.
+
+Em `backend/`, no PowerShell:
+
+```powershell
+$env:NODE_ENV = 'test'
+$env:INTEGRANTES_PG_INTEGRATION = '1'
+try {
+  node --env-file-if-exists=.env.test --test tests/integrantes.postgres.test.js
+} finally {
+  Remove-Item Env:INTEGRANTES_PG_INTEGRATION
+}
+```
+
+A integração cobre as quatro rotas, as recusas por sessão e perfil, o cadastro e a edição com login real, e-mails duplicados e duas requisições simultâneas para o mesmo e-mail.
