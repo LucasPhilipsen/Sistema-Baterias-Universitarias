@@ -18,13 +18,7 @@ export class Usuario {
       throw new TypeError('Identificação de usuário inválida.');
     }
 
-    if (typeof nome !== 'string' || !nome.trim() || nome.trim().length > 120) {
-      throw new TypeError('Nome deve ter entre 1 e 120 caracteres.');
-    }
-
-    if (typeof email !== 'string' || email.trim().length > 254 || !formatoEmail.test(email.trim())) {
-      throw new TypeError('E-mail inválido.');
-    }
+    const contato = Usuario.normalizarContato({ nome, email });
 
     if (!Object.values(PerfilUsuario).includes(perfil)) {
       throw new TypeError('Perfil de usuário inválido.');
@@ -35,10 +29,22 @@ export class Usuario {
     }
 
     this.#id = id;
-    this.#nome = nome.trim();
-    this.#email = email.trim().toLowerCase();
+    this.#nome = contato.nome;
+    this.#email = contato.email;
     this.#senhaHash = senhaHash;
     this.#perfil = perfil;
+  }
+
+  static normalizarContato({ nome, email }) {
+    if (typeof nome !== 'string' || !nome.trim() || nome.trim().length > 120) {
+      throw new TypeError('Nome deve ter entre 1 e 120 caracteres.');
+    }
+
+    if (typeof email !== 'string' || email.trim().length > 254 || !formatoEmail.test(email.trim())) {
+      throw new TypeError('E-mail inválido.');
+    }
+
+    return { nome: nome.trim(), email: email.trim().toLowerCase() };
   }
 
   get id() { return this.#id; }
