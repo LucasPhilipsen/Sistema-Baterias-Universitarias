@@ -13,12 +13,14 @@ import Ensaios from './pages/Ensaios.jsx';
 import Instrumentos from './pages/Instrumentos.jsx';
 import Integrantes from './pages/Integrantes.jsx';
 import Demanda from './pages/Demanda.jsx';
+import Emprestimos from './pages/Emprestimos.jsx';
 import styles from './App.module.css';
 
 const modules = [
   { path: '/acesso', title: 'Login', description: 'Entre com sua conta para acompanhar a bateria.', status: 'Disponível', actionLabel: 'Fazer login' },
   { path: '/ensaios', title: 'Ensaios', description: 'Agenda da bateria e organização dos ensaios.' },
   { path: '/instrumentos', title: 'Instrumentos e estoque', description: 'Consulta de instrumentos e situação das unidades.' },
+  { path: '/emprestimos', title: 'Empréstimos', description: 'Retiradas, devoluções e histórico de instrumentos.' },
   { path: '/integrantes', title: 'Integrantes', description: 'Cadastro, consulta e atualização dos integrantes da bateria.', status: 'Diretoria' },
   { path: '/demanda', title: 'Demanda e disponibilidade', description: 'Compare as confirmações de um ensaio com o estoque atual.', status: 'Diretoria' },
 ];
@@ -52,7 +54,7 @@ function Administration() {
   return <section aria-labelledby="administration-title">
     <PageIntro className={styles.pageIntro} id="administration-title" eyebrow="Diretoria" title="Organize o próximo encontro."
       description="Acompanhe os módulos de gestão da sua bateria." />
-    <Message>Gerencie os integrantes, os ensaios e os instrumentos e acompanhe a demanda da bateria.</Message>
+    <Message>Gerencie integrantes, ensaios, instrumentos e empréstimos e acompanhe a demanda da bateria.</Message>
     <ModuleGrid modules={modules.filter(module => module.path !== '/acesso')} />
   </section>;
 }
@@ -76,6 +78,7 @@ export default function App() {
       <Route element={<RequireAuth key={location.key} />}>
         <Route path="/ensaios" element={<Ensaios />} />
         <Route path="/instrumentos" element={<Instrumentos />} />
+        <Route path="/emprestimos" element={<Emprestimos />} />
         <Route path="/integrantes" element={<Integrantes />} />
         <Route path="/demanda" element={<Demanda />} />
         <Route path="/administracao" element={<Administration />} />

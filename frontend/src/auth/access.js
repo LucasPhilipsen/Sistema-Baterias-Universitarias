@@ -7,7 +7,7 @@ export function canAccess(pathname, usuario) {
   if (!Object.values(profiles).includes(usuario?.perfil)) return false;
   pathname = pathname.replace(/\/+$/, '') || '/';
   if (['/administracao', '/integrantes', '/demanda'].includes(pathname)) return usuario.perfil === profiles.DIRETORIA;
-  return ['/', '/ensaios', '/instrumentos'].includes(pathname);
+  return ['/', '/ensaios', '/instrumentos', '/emprestimos'].includes(pathname);
 }
 
 export function loginDestination(usuario, from) {

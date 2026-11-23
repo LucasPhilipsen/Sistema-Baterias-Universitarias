@@ -1,4 +1,4 @@
-# Interface — acesso, sessão, ensaios, estoque, integrantes e demanda
+# Interface — acesso, sessão, ensaios, estoque, integrantes, empréstimos e demanda
 
 JavaScript, React 19, Vite 8 e CSS Modules. Requer Node.js 24 LTS e npm.
 
@@ -36,7 +36,7 @@ O formulário usa `POST /api/auth/login`, envia somente `email` e `senha` e most
 - A revalidação automática acontece em segundo plano e preserva a tela, o foco e os formulários abertos. A entrada em uma rota protegida aguarda a conferência; expiração ou falha na consulta bloqueiam o acesso.
 - `POST /api/auth/logout` revoga a sessão antes de confirmar a saída. Uma falha bloqueia o conteúdo e oferece uma nova tentativa; não anuncia uma revogação que não aconteceu.
 - A entrada e a saída da conta são comunicadas às outras abas por BroadcastChannel quando disponível. A revalidação ao retomar a aba e nas rotas também funciona sem esse recurso.
-- Integrantes acessam `/ensaios` e `/instrumentos`; diretoria também acessa `/administracao`, `/integrantes` e `/demanda`. O destino padrão após login é `/ensaios` para integrante e `/administracao` para diretoria. O destino anterior é recuperado somente se for interno, conhecido e permitido.
+- Integrantes acessam `/ensaios`, `/instrumentos` e `/emprestimos`; diretoria também acessa `/administracao`, `/integrantes` e `/demanda`. O destino padrão após login é `/ensaios` para integrante e `/administracao` para diretoria. O destino anterior é recuperado somente se for interno, conhecido e permitido.
 - A área da diretoria tem proteção de rota, inclusive ao digitar a URL ou recarregar. Sessão ausente redireciona para `/acesso`; perfil sem permissão recebe uma mensagem de acesso restrito. Enquanto a sessão é verificada, o conteúdo protegido não é exibido. Perfis desconhecidos e falhas na consulta bloqueiam o acesso.
 - As operações administrativas continuam protegidas pelos componentes intermediários de autorização da SCRUM-23 no servidor. A página administrativa é uma entrada para os módulos. A agenda da SCRUM-28 permite gerir ensaios; o módulo da SCRUM-32 permite cadastrar e editar tipos e unidades e consultar o estoque.
 
@@ -242,6 +242,51 @@ O contrato da SCRUM-39 já está na `main` e define confirmações ativas por
 aguardar a adequação dessa consulta e a disponibilização dos módulos reais.
 Os resultados e limites da conferência estão no [registro da SCRUM-47](../docs/scrum-47-validacao.md).
 
+## Empréstimos e devoluções — SCRUM-46
+
+Abra o card **Empréstimos** na página inicial ou na área da diretoria, ou acesse
+`/emprestimos`. O módulo segue o [contrato da SCRUM-38](../docs/contrato-emprestimos.md):
+
+- Diretoria escolhe um integrante de `GET /api/integrantes` e uma unidade de
+  `GET /api/instrumentos?situacao=DISPONIVEL`; confirma a retirada com
+  `POST /api/emprestimos`, enviando somente os dois IDs numéricos selecionados.
+- A devolução exige uma confirmação e usa `PUT /api/emprestimos/:id/devolucao`
+  com `{}`. Datas e situação vêm do servidor. O frontend não altera o estoque por conta própria.
+- O histórico usa `GET /api/emprestimos`, sem filtros. A API deve restringir os
+  registros do integrante ao ID da sessão. Integrantes não consultam cadastros
+  administrativos nem veem ações de retirada ou devolução.
+- Todas as chamadas passam por `session.request()`. Depois de gravar, consultar
+  novamente histórico, integrantes e unidades disponíveis. Uma resposta inválida
+  não anuncia sucesso; conflitos atualizam as opções e descartam seleções removidas.
+- A interface exibe carregamento, vazio, falha com nova consulta, validação de
+  seleção e mensagens para sessão expirada, permissão negada e conflitos. Datas
+  aparecem no fuso `America/Sao_Paulo`; campos sensíveis não são renderizados.
+
+A base `ef8b711` contém o contrato e o script `006`, mas ainda não registra as
+rotas de empréstimos da SCRUM-42. A tela está preparada para essas rotas reais;
+sem elas, a consulta exibe indisponibilidade. A implementação não inclui uma
+API fictícia na aplicação nem conclui a integração com PostgreSQL.
+
+Para conferir a interface, instale as dependências de `frontend/` e `backend/`.
+Em `frontend/`, com Chrome instalado:
+
+```powershell
+$env:PLAYWRIGHT_CHANNEL = 'chrome'
+$env:E2E_PORT = '5178'
+try {
+  npm run test:e2e -- emprestimos
+} finally {
+  Remove-Item Env:PLAYWRIGHT_CHANNEL, Env:E2E_PORT
+}
+```
+
+`e2e/emprestimos.spec.js` simula explicitamente as respostas de empréstimos pelo
+contrato. Um cenário usa as APIs reais de integrantes, tipos e unidades com
+persistência em memória para conferir cadastros novos nos seletores. Esses testes
+não comprovam transações, isolamento do histórico no servidor ou persistência no
+PostgreSQL. O [registro da validação](../docs/scrum-46-validacao.md) descreve os
+resultados e os passos pendentes para a conferência conjunta com SCRUM-42 e SCRUM-50.
+
 ## Configuração e publicação
 
 `.env.example` documenta `VITE_API_BASE_URL`; vazio usa `/api`. Essa variável fica pública na versão compilada. Na configuração atual da API, use a mesma origem e um proxy reverso para `/api`: o servidor não habilita CORS e recusa entrada e saída de contas por outra origem. Uma URL externa exige alinhamento de CORS, cookies e origem com o responsável pela API.
@@ -253,7 +298,7 @@ npm run preview
 
 O comando `build` gera a versão compilada em `dist/`. O comando `preview` disponibiliza essa versão localmente e herda o proxy configurado para o servidor em localhost:3000; mantenha a API local em execução. A hospedagem publicada deve encaminhar `/api` para o servidor. Em produção, o cookie Secure exige HTTPS.
 
-A hospedagem deve servir `index.html` nas rotas do BrowserRouter (`/acesso`, `/ensaios`, `/instrumentos`, `/integrantes`, `/demanda`, `/administracao`), preservando os caminhos da API.
+A hospedagem deve servir `index.html` nas rotas do BrowserRouter (`/acesso`, `/ensaios`, `/instrumentos`, `/integrantes`, `/emprestimos`, `/demanda`, `/administracao`), preservando os caminhos da API.
 
 ## Testes
 
@@ -282,6 +327,8 @@ Remove-Item Env:PLAYWRIGHT_CHANNEL
 ```
 
 A suíte inicia o Vite na porta 5174 e a API Express em uma porta local livre. Por padrão, usa rotas de autenticação, ensaios e estoque, validação scrypt, cookie e componentes intermediários reais com repositórios em memória: não acessa o banco da aplicação. O servidor `e2e/server.js` exige `NODE_ENV=test`; sua rota de teste da diretoria não integra a aplicação publicada. Falhas de rede, limite de tentativas e mudança de perfil são injetados apenas nos cenários correspondentes.
+
+Defina `E2E_PORT` para executar em outra porta livre, sem interromper outras prévias locais. A configuração do Playwright e o servidor usam o mesmo valor; o padrão continua sendo 5174.
 
 Se esse mesmo servidor de testes já estiver rodando para conferência manual, defina `PLAYWRIGHT_REUSE_SERVER=1` para reutilizá-lo. Por padrão, a suíte exige a porta livre e gerencia seu próprio servidor.
 

@@ -48,7 +48,7 @@ app.use(errorHandler);
 const api = app.listen(0, '127.0.0.1');
 await new Promise(resolve => api.once('listening', resolve));
 const vite = await createServer({
-  server: { host: '127.0.0.1', port: 5174, strictPort: true, proxy: { '/api': { target: `http://127.0.0.1:${api.address().port}`, changeOrigin: false } } },
+  server: { host: '127.0.0.1', port: Number(process.env.E2E_PORT) || 5174, strictPort: true, proxy: { '/api': { target: `http://127.0.0.1:${api.address().port}`, changeOrigin: false } } },
 });
 await vite.listen();
 
