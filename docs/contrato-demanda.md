@@ -2,7 +2,7 @@
 
 Contrato para a história [Comparar demanda e disponibilidade (SCRUM-18)](https://pds20262-g14.atlassian.net/browse/SCRUM-18). Ele orienta o cálculo no backend ([SCRUM-43](https://pds20262-g14.atlassian.net/browse/SCRUM-43), Felipe), o painel ([SCRUM-47](https://pds20262-g14.atlassian.net/browse/SCRUM-47), Pedro) e a validação integrada ([SCRUM-51](https://pds20262-g14.atlassian.net/browse/SCRUM-51), Giovani).
 
-A comparação depende das confirmações ([SCRUM-37](https://pds20262-g14.atlassian.net/browse/SCRUM-37), Vitor) e dos empréstimos ([SCRUM-38](https://pds20262-g14.atlassian.net/browse/SCRUM-38), Lucas). Os pontos que precisam desses responsáveis estão em [acordos com os outros módulos](#acordos-com-os-outros-módulos). Esses pontos ainda precisam ser confirmados e não estão implementados.
+A comparação usa a modelagem de [confirmações (SCRUM-37)](https://pds20262-g14.atlassian.net/browse/SCRUM-37) e as regras de [empréstimos (SCRUM-38)](https://pds20262-g14.atlassian.net/browse/SCRUM-38) para interpretar a disponibilidade das unidades.
 
 ## Regra do cálculo
 
@@ -10,7 +10,7 @@ Para um ensaio, o resultado tem uma linha por tipo de instrumento:
 
 | Campo | Origem |
 | --- | --- |
-| `confirmados` | Quantidade de confirmações **ativas** do ensaio que indicam o tipo |
+| `confirmados` | Quantidade de confirmações do ensaio e tipo com `cancelado_em IS NULL` |
 | `disponiveis` | Quantidade de unidades do tipo com situação `DISPONIVEL` no momento da consulta |
 | `falta` | `max(0, confirmados - disponiveis)` |
 
@@ -79,7 +79,7 @@ A autenticação e a autorização rodam antes da validação do ID e da consult
 - A falta é calculada na entidade do item de demanda, a partir dos inteiros já validados, para testar a regra sem banco.
 - A rota não altera nenhuma tabela. Ela não grava reservas nem contagens.
 
-Esboço da consulta, usando os nomes propostos na seção seguinte:
+Consulta para o esquema definido na SCRUM-37:
 
 ```sql
 SELECT t.id AS "tipoInstrumentoId",
@@ -91,7 +91,7 @@ LEFT JOIN instrumentos i ON i.tipo_instrumento_id = t.id
 LEFT JOIN (
   SELECT tipo_instrumento_id, COUNT(*) AS confirmados
   FROM confirmacoes
-  WHERE ensaio_id = $1 AND situacao = 'ATIVA'
+  WHERE ensaio_id = $1 AND cancelado_em IS NULL
   GROUP BY tipo_instrumento_id
 ) c ON c.tipo_instrumento_id = t.id
 GROUP BY t.id, t.nome, c.confirmados
@@ -102,28 +102,16 @@ ORDER BY t.nome, t.id;
 
 ### Confirmações — Vitor (SCRUM-37 e SCRUM-41)
 
-A modelagem final é do Vitor, em um novo script `005`. Para o cálculo, a demanda precisa que:
-
-1. cada confirmação tenha `ensaio_id`, `usuario_id` e `tipo_instrumento_id`, com chaves estrangeiras para `ensaios`, `usuarios` e `tipos_instrumentos`;
-2. haja **um único critério de "ativa"**, consultável por SQL. Proposta: `situacao IN ('ATIVA', 'CANCELADA')`, com `ATIVA` contando na demanda;
-3. no máximo uma confirmação ativa exista por integrante e ensaio, garantido no banco. Proposta: índice único parcial em `(ensaio_id, usuario_id) WHERE situacao = 'ATIVA'`;
-4. trocar o tipo altere `tipo_instrumento_id` da confirmação ativa, e cancelar torne a confirmação não ativa, sem excluir o histórico;
-5. o nome da tabela e das colunas seja combinado antes da SCRUM-43. Proposta: `confirmacoes`.
-
-Pontos a confirmar com Vitor:
-
-- [ ] nome da tabela, colunas e valores da situação;
-- [ ] se as confirmações de um ensaio continuam guardadas depois que ele é cancelado. Como esta rota responde `409` para ensaio cancelado, isso não muda o cálculo.
+- O script `005-criar-confirmacoes.sql` define `confirmacoes` com `ensaio_id`, `usuario_id`, `tipo_instrumento_id` e `cancelado_em`. A restrição `UNIQUE (usuario_id, ensaio_id)` mantém um registro por usuário e ensaio, inclusive após cancelamento e reativação.
+- A demanda conta apenas `cancelado_em IS NULL`. Esse predicado também é usado pelo índice `confirmacoes_ativas_demanda_idx`, em `(ensaio_id, tipo_instrumento_id)`.
+- A troca de instrumento atualiza `tipo_instrumento_id` e muda a contagem para o novo tipo. Cancelar uma participação preenche `cancelado_em`. Reativá-la volta a deixar o campo nulo.
+- Cancelar o ensaio preserva os registros de confirmação. A rota de demanda devolve `409 ENSAIO_CANCELADO` nesse caso.
 
 ### Empréstimos — Lucas (SCRUM-38 e SCRUM-42)
 
 - A demanda lê somente `instrumentos.situacao`. Ela não consulta a tabela de empréstimos.
 - A retirada muda a unidade para `EMPRESTADO` e a devolução para `DISPONIVEL`, com `UPDATE` na mesma linha e na mesma transação do registro do empréstimo. Essa é a mesma proteção descrita na [implementação do estoque](contratos-sprint-2.md#implementação-no-backend--scrum-31).
 - `EM_MANUTENCAO` continua sendo testada com dados fictícios preparados no banco. A operação real fica para a SCRUM-17, na Sprint 4.
-
-Pontos a confirmar com Lucas:
-
-- [ ] que retirada e devolução sempre alteram `instrumentos.situacao`, sem coluna paralela de disponibilidade.
 
 ### Painel — Pedro (SCRUM-47)
 
@@ -148,4 +136,4 @@ Pontos a confirmar com Lucas:
 | Integrante, sem sessão, ID inválido, ensaio inexistente ou cancelado | `403`, `401`, `400`, `404` e `409`, respectivamente |
 | Consultar a demanda | Não altera `instrumentos` nem as confirmações |
 
-A suíte padrão (`npm test`) cobre a regra e o contrato HTTP com repositórios em memória. A verificação com PostgreSQL usa um banco vazio e descartável, com os scripts `001` a `005`, e só fica possível depois que o script de confirmações estiver na `main`.
+A suíte padrão (`npm test`) cobre a regra e o contrato HTTP com repositórios em memória. Para validar o cálculo no PostgreSQL, aplicar os scripts `001` a `005` em um banco descartável. Para conferir retirada e devolução no fluxo integrado, aplicar também o script `006` da SCRUM-38.
