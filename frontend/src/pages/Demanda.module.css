@@ -1,0 +1,35 @@
+.page { display: grid; gap: 40px; }
+.section { display: grid; gap: 24px; min-width: 0; }
+.toolbar, .controls { display: flex; align-items: center; flex-wrap: wrap; gap: 24px; }
+.toolbar { justify-content: space-between; }
+.controls { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; }
+.controls > button { margin-top: 29px; }
+.field { display: grid; gap: 8px; flex: 1 1 400px; min-width: 0; }
+.field label { font-size: 14px; font-weight: 400; }
+.field select { width: 100%; max-width: 100%; min-width: 0; min-height: var(--control-height); padding: 12px; border: 1px solid var(--color-lavender-border); border-radius: var(--radius-buttons); background: var(--color-pure-white); color: var(--text); font: inherit; font-size: 16px; }
+.field small, .timestamp, .context { color: var(--muted); font-size: 14px; }
+.context { margin: 16px 0 0; overflow-wrap: anywhere; }
+.timestamp { margin: 0; }
+.tableWrap { min-width: 0; }
+.table { width: 100%; border-collapse: collapse; text-align: left; table-layout: fixed; }
+.caption { text-align: left; font-size: 14px; color: var(--muted); margin-bottom: 16px; }
+.table th, .table td { padding: 20px 16px; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.table thead th { font-size: 14px; font-weight: 400; }
+.table thead th:first-child { width: 40%; }
+.table tbody th { font-weight: 400; }
+.table td { font-size: 24px; font-variant-numeric: tabular-nums; }
+.shortage { background: var(--color-error-surface); }
+.shortage td:last-child { color: var(--color-error); font-weight: 400; }
+.badge { display: inline-block; margin: 8px 0 0 12px; padding: 4px 8px; border: 1px solid currentColor; border-radius: var(--radius-cards); color: var(--color-error); font-size: 12px; }
+@media (max-width: 600px) {
+  .controls { grid-template-columns: minmax(0, 1fr); }
+  .controls > button { justify-self: start; margin-top: 0; }
+  .table, .table tbody { display: block; }
+  .caption { display: block; width: 100%; }
+  .table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .table tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--border); border-radius: var(--radius-cards); margin-bottom: 16px; padding: 16px; gap: 16px 8px; }
+  .table tbody th { grid-column: 1 / -1; }
+  .table th, .table td { display: block; padding: 0; border: 0; }
+  .table td::before { content: attr(data-label); display: block; font-size: 12px; font-weight: 300; color: var(--muted); margin-bottom: 8px; }
+  .table .badge { margin-left: 8px; }
+}
