@@ -10,6 +10,7 @@ import { exigirAutenticacao, exigirDiretoria } from '../../backend/src/middlewar
 import { errorHandler } from '../../backend/src/middlewares/errorHandler.js';
 import { memoryEnsaios } from './support/ensaios-memory.js';
 import { memoryEstoque } from './support/estoque-memory.js';
+import { memoryIntegrantes } from './support/integrantes-memory.js';
 
 if (process.env.NODE_ENV !== 'test') throw new Error('Este servidor só pode ser usado em testes.');
 
@@ -32,12 +33,14 @@ const authService = new AuthService({
   },
   senhas: new SenhaService(),
 });
-const services = process.env.ESTOQUE_E2E_POSTGRES === '1'
+const services = process.env.INTEGRANTES_E2E_POSTGRES === '1'
+  ? await (await import('./support/integrantes-postgres.js')).postgresIntegrantes()
+  : process.env.ESTOQUE_E2E_POSTGRES === '1'
   ? await (await import('./support/estoque-postgres.js')).postgresEstoque()
   : process.env.ENSAIOS_E2E_POSTGRES === '1'
   ? await (await import('./support/postgres.js')).postgresServices()
-  : { authService, ensaioService: memoryEnsaios(), estoque: await memoryEstoque() };
-const app = createApp({ authService: services.authService, ensaioService: services.ensaioService, estoque: services.estoque, limiteTentativas: 1000 });
+  : { authService, ensaioService: memoryEnsaios(), estoque: await memoryEstoque(), integranteService: memoryIntegrantes(usuarios) };
+const app = createApp({ authService: services.authService, ensaioService: services.ensaioService, estoque: services.estoque, integranteService: services.integranteService, limiteTentativas: 1000 });
 app.get('/api/e2e/diretoria', exigirAutenticacao(services.authService), exigirDiretoria, (req, res) => res.json({ permitido: true }));
 app.use(errorHandler);
 const api = app.listen(0, '127.0.0.1');

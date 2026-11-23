@@ -46,6 +46,7 @@ export default function Header() {
           <NavLink to="/" end>Início</NavLink>
           <NavLink to="/ensaios">Ensaios</NavLink>
           <NavLink to="/instrumentos">Instrumentos e estoque</NavLink>
+          {canAccess('/integrantes', usuario) && <NavLink to="/integrantes">Integrantes</NavLink>}
           {canAccess('/administracao', usuario) && <NavLink to="/administracao">Diretoria</NavLink>}
         </nav>
         <div className={styles.actions}>
