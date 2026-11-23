@@ -72,3 +72,9 @@ Usar o formato `{ "error": { "code": "...", "message": "..." } }`.
 ## Conferência da integração
 
 Na SCRUM-42 e na SCRUM-50, conferir retirada simultânea da mesma unidade, devolução repetida mesmo após um novo empréstimo da unidade, retirada recusada em manutenção, histórico por perfil e disponibilidade após cada operação. Na [SCRUM-48](https://pds20262-g14.atlassian.net/browse/SCRUM-48), conferir que o seletor do formulário usa os integrantes recém-cadastrados retornados pela API.
+
+## Implementação do backend (SCRUM-42)
+
+As rotas da tabela acima estão em `backend/src/routes/emprestimos.js`; entidade, serviço, repositório e controller ficam em `backend/src/entities/Emprestimo.js`, `backend/src/services/EmprestimoService.js`, `backend/src/repositories/EmprestimoRepository.js` e `backend/src/controllers/EmprestimoController.js`. As rotas usam a autenticação e autorização compartilhadas. `GET` aplica o escopo pelo perfil e ID da sessão; escrita exige diretoria e JSON da mesma origem.
+
+Em `backend/`, `npm test` executa os testes HTTP com repositório em memória. A integração PostgreSQL usa banco vazio descartável com prefixo `bateria_emprestimos_test_`, configurações em `.env.test` e os passos do [guia do banco](../database/README.md#empréstimos-scrum-38). O teste de integração aplica a migration e dados fictícios e não deve apontar para o banco de desenvolvimento.
