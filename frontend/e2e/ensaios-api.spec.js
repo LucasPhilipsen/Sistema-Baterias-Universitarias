@@ -2,6 +2,10 @@ import { test, expect } from '@playwright/test';
 import { postgresTestPool } from './support/postgres-pool.js';
 
 test.use({ timezoneId: 'Asia/Tokyo' });
+test.beforeEach(async ({ page }) => {
+  // SCRUM-27/28: as operações de ensaio continuam reais; participação é validada em suíte separada.
+  await page.route('**/api/ensaios/*/minha-participacao', route => route.fulfill({ json: { participacao: null } }));
+});
 
 async function login(page, perfil = 'diretoria') {
   await page.goto('/ensaios');
@@ -112,7 +116,7 @@ test('integrante consulta e filtra; API real recusa cadastro, edição e cancela
   await expect(page.getByRole('button', { name: 'Cadastrar ensaio' })).toHaveCount(0);
   const card = page.getByRole('article').filter({ has: page.getByRole('heading', { name: ensaio.local, exact: true }) });
   await expect(card).toBeVisible();
-  await expect(card.getByRole('button')).toHaveCount(0);
+  await expect(card.getByRole('button', { name: /^(Editar ensaio|Cancelar ensaio em)/ })).toHaveCount(0);
   for (const [method, url, body] of [
     ['POST', '/api/ensaios', payload], ['PUT', `/api/ensaios/${ensaio.id}`, payload], ['PATCH', `/api/ensaios/${ensaio.id}/cancelamento`, {}],
   ]) {

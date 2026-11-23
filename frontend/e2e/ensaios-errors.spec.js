@@ -4,6 +4,8 @@ test.use({ timezoneId: 'Asia/Tokyo' });
 
 const example = { id: 812, inicioEm: '2026-11-11T01:30:45.123Z', local: 'Quadra fictícia', descricao: 'Ensaio geral', situacao: 'AGENDADO' };
 async function setup(page) {
+  // A participação tem cenários próprios; esta suíte isola a gestão da agenda.
+  await page.route('**/api/ensaios/*/minha-participacao', route => route.fulfill({ json: { participacao: null } }));
   await page.route('**/api/ensaios?*', route => route.fulfill({ json: { ensaios: [] } }));
   await page.route('**/api/ensaios', route => route.fulfill({ json: { ensaios: [example] } }));
   await page.goto('/ensaios');

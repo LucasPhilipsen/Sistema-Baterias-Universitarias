@@ -85,6 +85,78 @@ O backend da SCRUM-27 e os scripts `001`, `002` e `003` são necessários para
 usar a agenda. A disponibilidade deve ser conferida no ambiente de destino;
 a implementação da tela não substitui a preparação desse ambiente.
 
+## Participação nos ensaios — SCRUM-45
+
+Cada card de `/ensaios` consulta e mostra **Minha participação**. Integrantes e diretoria
+podem confirmar a própria participação, escolher outro tipo, cancelar com confirmação na
+tela e reconfirmar. A lista de tipos vem de `GET /api/tipos-instrumentos`; IDs são enviados
+como inteiros, sem valores fixos no código da aplicação. Confirmar não reserva uma unidade.
+
+O fluxo segue o [contrato da SCRUM-37](../docs/contrato-confirmacoes.md):
+
+| Operação | Requisição |
+| --- | --- |
+| Consultar ou atualizar o estado | `GET /api/ensaios/:id/minha-participacao` |
+| Confirmar, trocar tipo ou reconfirmar | `PUT /api/ensaios/:id/minha-participacao` com apenas `tipoInstrumentoId` |
+| Cancelar participação | `DELETE /api/ensaios/:id/minha-participacao`, sem corpo |
+
+Todas as chamadas passam por `session.request()`. Não há ID de usuário, perfil ou
+identidade de outro integrante nas requisições. A tela aceita somente uma resposta válida
+para o ensaio solicitado antes de atualizar o estado. `participacao: null` significa que
+não há participação ativa; a API usa esse mesmo retorno para quem nunca confirmou ou cancelou.
+
+Há carregamento, ausência/falha de tipos, validação de seleção, falha de consulta, erro de
+gravação e nova tentativa. Uma gravação em andamento bloqueia as ações e os filtros da
+agenda, evitando submissões duplicadas e a desmontagem do card durante o envio. Em falha
+sem confirmação, é preciso usar **Atualizar participação** antes de repetir a alteração.
+
+Ensaio cancelado preserva a consulta do registro e remove controles de alteração. Se for
+cancelado por outra sessão depois de carregar a página, o `409 ENSAIO_CANCELADO` também
+bloqueia o card e orienta atualizar a agenda. O backend continua responsável pela autorização
+e unicidade; o PUT é idempotente. A diretoria mantém os controles administrativos existentes.
+
+Arquivos principais: `src/pages/ParticipacaoEnsaio.jsx`, `ParticipacaoEnsaio.module.css` e
+`participacoes.js`, integrados à página `Ensaios.jsx`.
+
+Para testar estados da interface com respostas interceptadas e sessão real, em `frontend/`:
+
+```powershell
+$env:PLAYWRIGHT_CHANNEL = 'chrome'
+$env:E2E_PORT = '5175' # Opcional; o padrão é 5174.
+try {
+  npm run test:e2e -- participacoes.spec
+} finally {
+  Remove-Item Env:PLAYWRIGHT_CHANNEL, Env:E2E_PORT
+}
+```
+
+Para conferir a interface com API e PostgreSQL reais, prepare um checkout separado da
+branch `feature/SCRUM-41-backend-confirmacoes`, instale suas dependências de backend e crie
+um banco vazio e descartável com prefixo `bateria_frontend_confirmacoes_test_`. Configure
+`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` e `DB_PASSWORD` no ambiente local e execute:
+
+```powershell
+$env:CONFIRMACOES_E2E_BACKEND_ROOT = 'C:/caminho/checkout-SCRUM-41'
+$env:CONFIRMACOES_E2E_POSTGRES = '1'
+$env:PLAYWRIGHT_CHANNEL = 'chrome'
+$env:E2E_PORT = '5175'
+try {
+  npm run test:e2e -- participacoes-api.spec
+} finally {
+  Remove-Item Env:CONFIRMACOES_E2E_BACKEND_ROOT, Env:CONFIRMACOES_E2E_POSTGRES, Env:PLAYWRIGHT_CHANNEL, Env:E2E_PORT
+}
+```
+
+O servidor de testes exige `NODE_ENV=test`, recusa banco preenchido ou fora do prefixo e
+aplica as migrações `001` a `005` e as contas fictícias. Não intercepta respostas de ensaios,
+tipos ou participação nesse modo. Cada teste cria seu ensaio pela API real; a conferência
+SQL valida persistência, unicidade, cancelamento lógico e preservação das unidades físicas.
+Use outro banco vazio para repetir. Sem esse modo, os oito cenários de API são ignorados.
+
+A API da SCRUM-41 deve estar disponível no ambiente final para usar a funcionalidade.
+O checkout separado serve à integração local e não é incorporado ao build do frontend.
+O [registro da SCRUM-45](../docs/scrum-45-validacao.md) diferencia os cenários reais dos simulados.
+
 ## Instrumentos e estoque — SCRUM-32
 
 `/instrumentos` apresenta os tipos nos cards de disponibilidade e uma lista de unidades. Integrantes
