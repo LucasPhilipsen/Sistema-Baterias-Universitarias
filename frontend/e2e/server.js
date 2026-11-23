@@ -33,7 +33,9 @@ const authService = new AuthService({
   },
   senhas: new SenhaService(),
 });
-const services = process.env.DEMANDA_E2E_BACKEND_ROOT
+const services = process.env.CONFIRMACOES_E2E_POSTGRES === '1'
+  ? await (await import('./support/confirmacoes-postgres.js')).postgresConfirmacoes(process.env.CONFIRMACOES_E2E_BACKEND_ROOT)
+  : process.env.DEMANDA_E2E_BACKEND_ROOT
   ? await (await import('./support/demanda-api.js')).externalDemandaApi(process.env.DEMANDA_E2E_BACKEND_ROOT)
   : process.env.INTEGRANTES_E2E_POSTGRES === '1'
   ? await (await import('./support/integrantes-postgres.js')).postgresIntegrantes()
@@ -48,7 +50,7 @@ app.use(errorHandler);
 const api = app.listen(0, '127.0.0.1');
 await new Promise(resolve => api.once('listening', resolve));
 const vite = await createServer({
-  server: { host: '127.0.0.1', port: 5174, strictPort: true, proxy: { '/api': { target: `http://127.0.0.1:${api.address().port}`, changeOrigin: false } } },
+  server: { host: '127.0.0.1', port: Number(process.env.E2E_PORT) || 5174, strictPort: true, proxy: { '/api': { target: `http://127.0.0.1:${api.address().port}`, changeOrigin: false } } },
 });
 await vite.listen();
 

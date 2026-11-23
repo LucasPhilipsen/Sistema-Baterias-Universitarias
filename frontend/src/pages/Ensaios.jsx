@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { profiles } from '../auth/access.js';
 import PageIntro from '../components/PageIntro.jsx';
 import { Button, FormField, Loading, Message } from '../components/ui.jsx';
 import { dateFields, displayDate, ensaioError, readEnsaio, validateForm } from './ensaios.js';
+import ParticipacaoEnsaio from './ParticipacaoEnsaio.jsx';
+import { readTipos } from './instrumentos.js';
+import { participacaoError } from './participacoes.js';
 import styles from './Ensaios.module.css';
 
 const emptyForm = { data: '', horario: '', local: '', descricao: '' };
@@ -20,12 +23,36 @@ export default function Ensaios() {
   const [failure, setFailure] = useState('');
   const [success, setSuccess] = useState('');
   const [busy, setBusy] = useState(false);
+  const [participationWrites, setParticipationWrites] = useState(new Set());
+  const [tipos, setTipos] = useState({ loading: true, data: [], error: '' });
+  const [tiposRevision, setTiposRevision] = useState(0);
+  const controlsBusy = busy || participationWrites.size > 0;
+  const participationBusy = useCallback((id, pending) => setParticipationWrites(previous => {
+    const next = new Set(previous);
+    if (pending) next.add(id); else next.delete(id);
+    return next;
+  }), []);
   const operation = useRef(null);
   const panel = useRef(null);
   const agenda = useRef(null);
   const errorBox = useRef(null);
 
   useEffect(() => () => operation.current?.abort(), []);
+  useEffect(() => {
+    const controller = new AbortController();
+    setTipos({ loading: true, data: [], error: '' });
+    (async () => {
+      try {
+        const result = await session.request('/tipos-instrumentos', { cache: 'no-store', signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15_000)]) });
+        const data = readTipos(result);
+        if (new Set(data.map(tipo => tipo.id)).size !== data.length) throw new Error('Lista de tipos inválida.');
+        if (!controller.signal.aborted) setTipos({ loading: false, data, error: '' });
+      } catch (error) {
+        if (!controller.signal.aborted) setTipos({ loading: false, data: [], error: participacaoError(error, 'tipos') });
+      }
+    })();
+    return () => controller.abort();
+  }, [session, tiposRevision, reload]);
   useEffect(() => {
     const controller = new AbortController();
     const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(15_000)]);
@@ -63,7 +90,7 @@ export default function Ensaios() {
 
   async function submit(event) {
     event.preventDefault();
-    if (operation.current || !isDirector || !editor) return;
+    if (operation.current || participationWrites.size || !isDirector || !editor) return;
     setSuccess(''); setFailure('');
     const cancel = editor.mode === 'cancel';
     const { errors: validation, body } = cancel ? { errors: {}, body: {} } : validateForm(values);
@@ -107,29 +134,29 @@ export default function Ensaios() {
   return <section className={styles.page} aria-labelledby="ensaios-title">
     <PageIntro id="ensaios-title" eyebrow="Agenda da bateria" title="Ensaios"
       description="Encontre os próximos encontros e acompanhe a programação da bateria.">
-      {isDirector && <Button onClick={() => open('create')} disabled={busy}>Cadastrar ensaio</Button>}
+      {isDirector && <Button onClick={() => open('create')} disabled={controlsBusy}>Cadastrar ensaio</Button>}
     </PageIntro>
     {success && <Message>{success}</Message>}
     {failure && <div ref={errorBox} tabIndex={-1}><Message variant="error">{failure}</Message></div>}
     {isDirector && editor && <section className={styles.panel} aria-labelledby="editor-title" ref={panel} tabIndex={-1}>
       <h2 id="editor-title">{editor.mode === 'cancel' ? 'Cancelar ensaio' : editor.ensaio ? 'Editar ensaio' : 'Cadastrar ensaio'}</h2>
-      <form onSubmit={submit} noValidate aria-busy={busy}>
+      <form onSubmit={submit} noValidate aria-busy={controlsBusy}>
         {editor.mode === 'cancel' ? <p>Cancelar o ensaio em <strong>{editor.ensaio.local}</strong>, {displayDate(editor.ensaio.inicioEm)}? O registro continuará na agenda e não poderá ser editado.</p> : <>
           <div className={styles.dateRow}>
-            <FormField label="Data" name="data" type="date" required min="1970-01-01" max="9999-12-31" value={values.data} onChange={change} error={errors.data} disabled={busy} />
-            <FormField label="Horário" name="horario" type="time" required value={values.horario} onChange={change} hint="America/Sao_Paulo" disabled={busy} />
+            <FormField label="Data" name="data" type="date" required min="1970-01-01" max="9999-12-31" value={values.data} onChange={change} error={errors.data} disabled={controlsBusy} />
+            <FormField label="Horário" name="horario" type="time" required value={values.horario} onChange={change} hint="America/Sao_Paulo" disabled={controlsBusy} />
           </div>
-          <FormField label="Local" name="local" required maxLength={160} value={values.local} onChange={change} error={errors.local} disabled={busy} />
+          <FormField label="Local" name="local" required maxLength={160} value={values.local} onChange={change} error={errors.local} disabled={controlsBusy} />
           <div className={styles.descriptionField}>
             <label htmlFor="ensaio-descricao">Descrição</label>
-            <textarea id="ensaio-descricao" name="descricao" maxLength={1000} rows={4} value={values.descricao} onChange={change} disabled={busy}
+            <textarea id="ensaio-descricao" name="descricao" maxLength={1000} rows={4} value={values.descricao} onChange={change} disabled={controlsBusy}
               aria-invalid={errors.descricao ? true : undefined} aria-describedby="descricao-hint" />
             <small id="descricao-hint">{errors.descricao || 'Opcional. Até 1000 caracteres.'}</small>
           </div>
         </>}
         <div className={styles.actions}>
-          <Button type="submit" disabled={busy}>{busy ? 'Aguardando confirmação…' : editor.mode === 'cancel' ? 'Confirmar cancelamento' : 'Salvar ensaio'}</Button>
-          <Button variant="secondary" onClick={close} disabled={busy}>Voltar à agenda</Button>
+          <Button type="submit" disabled={controlsBusy}>{busy ? 'Aguardando confirmação…' : editor.mode === 'cancel' ? 'Confirmar cancelamento' : 'Salvar ensaio'}</Button>
+          <Button variant="secondary" onClick={close} disabled={controlsBusy}>Voltar à agenda</Button>
         </div>
       </form>
     </section>}
@@ -138,13 +165,17 @@ export default function Ensaios() {
       <div className={styles.filters}>
         <div className={styles.filterField}>
           <label htmlFor="ensaios-situacao">Situação</label>
-          <select id="ensaios-situacao" value={filter} onChange={event => setFilter(event.target.value)} disabled={busy}>
+          <select id="ensaios-situacao" value={filter} onChange={event => setFilter(event.target.value)} disabled={controlsBusy}>
             <option value="">Todas</option><option value="AGENDADO">Agendados</option><option value="CANCELADO">Cancelados</option>
           </select>
         </div>
-        <Button variant="secondary" onClick={() => setReload(previous => previous + 1)} disabled={list.loading || busy}>Atualizar agenda</Button>
+        <Button variant="secondary" onClick={() => setReload(previous => previous + 1)} disabled={list.loading || controlsBusy}>Atualizar agenda</Button>
+        <Button variant="secondary" onClick={() => setTiposRevision(value => value + 1)} disabled={tipos.loading || controlsBusy}>Atualizar tipos</Button>
       </div>
     </div>
+    {!tipos.loading && (tipos.error || !tipos.data.length) && <div className={styles.typeState}>
+      <Message variant={tipos.error ? 'error' : 'info'}>{tipos.error || 'Nenhum tipo de instrumento cadastrado. A confirmação fica disponível quando houver tipos.'}</Message>
+    </div>}
     {list.loading ? <Loading>Carregando ensaios…</Loading> : list.error ? <Message variant="error">{list.error}</Message>
       : list.ensaios.length === 0 ? <Message>{filter ? 'Nenhum ensaio nesta situação.' : 'Nenhum ensaio cadastrado.'}</Message>
         : <ul className={styles.list}>{list.ensaios.map(ensaio => <li key={ensaio.id}>
@@ -155,9 +186,10 @@ export default function Ensaios() {
             <time dateTime={ensaio.inicioEm}>{displayDate(ensaio.inicioEm)}</time>
             {ensaio.descricao && <p className={styles.description}>{ensaio.descricao}</p>}
             {isDirector && ensaio.situacao === 'AGENDADO' && <div className={styles.actions}>
-              <Button variant="secondary" disabled={busy} onClick={() => open('edit', ensaio)} aria-label={`Editar ensaio em ${ensaio.local}`}>Editar</Button>
-              <Button variant="secondary" disabled={busy} onClick={() => open('cancel', ensaio)} aria-label={`Cancelar ensaio em ${ensaio.local}`}>Cancelar ensaio</Button>
+              <Button variant="secondary" disabled={controlsBusy} onClick={() => open('edit', ensaio)} aria-label={`Editar ensaio em ${ensaio.local}`}>Editar</Button>
+              <Button variant="secondary" disabled={controlsBusy} onClick={() => open('cancel', ensaio)} aria-label={`Cancelar ensaio em ${ensaio.local}`}>Cancelar ensaio</Button>
             </div>}
+            <ParticipacaoEnsaio key={`${usuario.id}-${ensaio.id}`} ensaio={ensaio} tipos={tipos} disabled={controlsBusy} onBusyChange={participationBusy} />
           </article>
         </li>)}</ul>}
   </section>;
