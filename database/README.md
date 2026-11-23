@@ -14,6 +14,25 @@ A tabela `usuarios` guarda a identidade usada no acesso ao sistema e será reuti
 
 A classe `Usuario`, em `backend/src/entities/Usuario.js`, normaliza nome e e-mail, valida os dados, identifica o perfil de diretoria e omite o hash na serialização JSON. O repositório de usuários mapeia `senha_hash` para `senhaHash`. O contrato de acesso e os componentes intermediários de autorização estão em [autenticação](../docs/autenticacao.md).
 
+## Confirmações de participação em ensaios — SCRUM-37
+
+A tabela `confirmacoes` registra a intenção de participação de um usuário (`usuarios.id`) em um ensaio (`ensaios.id`), vinculada a um tipo de instrumento (`tipos_instrumentos.id`). A confirmação representa **demanda por tipo de instrumento** e **não reserva uma unidade física**. O estoque real e a disponibilidade física continuam sendo controlados pelas tabelas `instrumentos` e movimentações de estoque.
+
+| Coluna | Tipo | Regra |
+| --- | --- | --- |
+| `id` | integer identity | Chave primária gerada pelo banco |
+| `ensaio_id` | integer | Obrigatório, chave estrangeira para `ensaios.id` com `ON DELETE CASCADE` |
+| `usuario_id` | integer | Obrigatório, chave estrangeira para `usuarios.id` com `ON DELETE CASCADE` |
+| `tipo_instrumento_id` | integer | Obrigatório, chave estrangeira para `tipos_instrumentos.id` com `ON DELETE RESTRICT` |
+| `criado_em` | timestamptz | Obrigatório, padrão `CURRENT_TIMESTAMP` |
+| `atualizado_em` | timestamptz | Opcional, nulo na criação; data/hora da última alteração de tipo ou cancelamento |
+| `cancelado_em` | timestamptz | Opcional; nulo se ativa, preenchido se cancelada |
+
+- A unicidade no PostgreSQL é garantida por `UNIQUE (usuario_id, ensaio_id)`, permitindo no máximo um registro por usuário e ensaio, mesmo sob requisições concorrentes.
+- O cancelamento é lógico (*soft delete*): atualizar `cancelado_em = CURRENT_TIMESTAMP` inativa a participação sem perder o histórico para auditoria.
+- Troca de tipo e reativação utilizam `UPDATE` ou `INSERT ... ON CONFLICT (usuario_id, ensaio_id) DO UPDATE`.
+- O contrato da API e a integração com o cálculo de demanda estão detalhados em [contrato de confirmações](../docs/contrato-confirmacoes.md).
+
 ## Preparar o banco
 
 Requisitos: PostgreSQL 18 com `psql` e `createdb` disponíveis no terminal; Node.js 24 para os testes da entidade.
@@ -80,6 +99,29 @@ psql -X -h localhost -p 5432 -U postgres -d bateria_integracao_test_local -v ON_
 ```
 
 O teste confere instante com fuso, situações iniciais, validações, unicidade, chave estrangeira e contagens por situação, incluindo tipo sem unidades. Os registros de teste são revertidos ao final; os valores das sequências de identificação podem avançar. A verificação das rotas e da interface fica para a implementação dos módulos.
+
+### Modelagem de confirmações de ensaio (SCRUM-37)
+
+O script `005-criar-confirmacoes.sql` cria a tabela `confirmacoes`, as chaves estrangeiras com `ensaios`, `usuarios` e `tipos_instrumentos`, as restrições de unicidade por usuário/ensaio, as checagens temporais e os índices de consulta e cálculo de demanda ativa (`confirmacoes_ativas_demanda_idx`). O script executa em uma transação atômica.
+
+Em um banco de desenvolvimento preparado com os scripts `001` a `004`, aplicar o script:
+
+```sh
+psql -X -h localhost -p 5432 -U postgres -d bateria_db -v ON_ERROR_STOP=1 -f database/005-criar-confirmacoes.sql
+```
+
+Para conferir todas as restrições e o ciclo de vida sem impactar o banco da aplicação, criar um banco descartável com prefixo `bateria_confirmacoes_test_`:
+
+```sh
+createdb -h localhost -p 5432 -U postgres bateria_confirmacoes_test_local
+psql -X -h localhost -p 5432 -U postgres -d bateria_confirmacoes_test_local -v ON_ERROR_STOP=1 -f database/001-criar-usuarios.sql
+psql -X -h localhost -p 5432 -U postgres -d bateria_confirmacoes_test_local -v ON_ERROR_STOP=1 -f database/003-criar-ensaios.sql
+psql -X -h localhost -p 5432 -U postgres -d bateria_confirmacoes_test_local -v ON_ERROR_STOP=1 -f database/004-criar-instrumentos.sql
+psql -X -h localhost -p 5432 -U postgres -d bateria_confirmacoes_test_local -v ON_ERROR_STOP=1 -f database/005-criar-confirmacoes.sql
+psql -X -h localhost -p 5432 -U postgres -d bateria_confirmacoes_test_local -v ON_ERROR_STOP=1 -f database/tests/confirmacoes.sql
+```
+
+O teste `database/tests/confirmacoes.sql` confere a criação de confirmação inicial ativa, a restrição de unicidade sob concorrência (`UNIQUE (usuario_id, ensaio_id)`), chaves estrangeiras com usuários, ensaios e tipos de instrumento, proteção contra exclusão de tipo com confirmações ativas (`RESTRICT`), coerência cronológica de datas, troca de tipo de instrumento, cancelamento de participação, reativação, padrão de upsert idempotente e a consulta de demanda agregada por tipo (`WHERE cancelado_em IS NULL`). Todos os registros são revertidos ao final com `ROLLBACK`.
 
 ### Usuários e dados iniciais
 
