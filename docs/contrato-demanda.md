@@ -137,3 +137,38 @@ ORDER BY t.nome, t.id;
 | Consultar a demanda | Não altera `instrumentos` nem as confirmações |
 
 A suíte padrão (`npm test`) cobre a regra e o contrato HTTP com repositórios em memória. Para validar o cálculo no PostgreSQL, aplicar os scripts `001` a `005` em um banco descartável. Para conferir retirada e devolução no fluxo integrado, aplicar também o script `006` da SCRUM-38.
+
+## Implementação no backend — SCRUM-43
+
+| Parte | Arquivo |
+| --- | --- |
+| Regra da falta | `backend/src/entities/ItemDemanda.js` |
+| Serviço | `backend/src/services/DemandaService.js`: valida ID e filtros, confere o ensaio (`404` e `409`) e converte as contagens em inteiros |
+| Consulta | `backend/src/repositories/DemandaRepository.js`: SQL parametrizado único, exportado como `SQL_DEMANDA_POR_TIPO` |
+| HTTP | `backend/src/controllers/DemandaController.js` e `backend/src/routes/demanda.js`, montados em `/api/ensaios` no `app.js` |
+| Testes | `backend/tests/demanda.test.js`, com repositórios em memória, e `backend/tests/demanda.postgres.test.js`, com o banco real |
+
+`SQL_DEMANDA_POR_TIPO` usa `cancelado_em IS NULL`, como o script `005`. `npm test` em `backend/` executa a suíte padrão.
+
+Para conferir a consulta no PostgreSQL 18, crie um banco vazio com prefixo `bateria_demanda_test_` e configure a conexão em `backend/.env.test`. Depois execute, na raiz do repositório, em PowerShell:
+
+```powershell
+$env:DEMANDA_PG_INTEGRATION = '1'
+try {
+  node --env-file=backend/.env.test --test backend/tests/demanda.postgres.test.js
+} finally {
+  Remove-Item Env:DEMANDA_PG_INTEGRATION
+}
+```
+
+O teste aplica os scripts `001` a `005` e as contas fictícias. Confirmações e situações de unidades são preparadas diretamente no banco, e o teste confere:
+
+- o exemplo 5/3 → falta 2;
+- unidades emprestadas e em manutenção fora da disponibilidade;
+- cancelamento, reativação e troca de tipo;
+- retirada e devolução;
+- confirmações de outro ensaio;
+- os erros `403`, `404` e `409`;
+- que a consulta não grava nada.
+
+O teste falha se as tabelas já existirem. Para repetir, use outro banco vazio.
