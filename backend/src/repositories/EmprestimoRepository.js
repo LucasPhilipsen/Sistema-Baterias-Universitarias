@@ -69,7 +69,7 @@ export class EmprestimoRepository {
 
       const { rows: [criado] } = await cliente.query(
         `INSERT INTO emprestimos (usuario_id, instrumento_id, retirada_em)
-         VALUES ($1, $2, CURRENT_TIMESTAMP) RETURNING id`,
+         VALUES ($1, $2, clock_timestamp()) RETURNING id`,
         [integranteId, instrumentoId],
       );
       const { rowCount: unidadesAtualizadas } = await cliente.query(
@@ -133,7 +133,9 @@ export class EmprestimoRepository {
       }
 
       await cliente.query(
-        'UPDATE emprestimos SET devolucao_em = CURRENT_TIMESTAMP WHERE id = $1 AND devolucao_em IS NULL',
+        `UPDATE emprestimos
+         SET devolucao_em = GREATEST(retirada_em, clock_timestamp())
+         WHERE id = $1 AND devolucao_em IS NULL`,
         [id],
       );
       const { rowCount: unidadesAtualizadas } = await cliente.query(

@@ -5,6 +5,7 @@ import test from 'node:test';
 import { createApp } from '../src/app.js';
 import { dbPool } from '../src/config/database.js';
 import { env } from '../src/config/env.js';
+import { EmprestimoRepository } from '../src/repositories/EmprestimoRepository.js';
 
 test('API de empréstimos com PostgreSQL descartável', { skip: process.env.EMPRESTIMOS_PG_INTEGRATION !== '1' }, async t => {
   assert.equal(env.nodeEnv, 'test');
@@ -121,5 +122,52 @@ test('API de empréstimos com PostgreSQL descartável', { skip: process.env.EMPR
     assert.deepEqual(resultados.map(item => item.status).sort(), [201, 409]);
     assert.equal((await sql('SELECT count(*)::integer AS quantidade FROM emprestimos WHERE instrumento_id = $1 AND devolucao_em IS NULL', [concorrente]))[0].quantidade, 1);
     assert.equal((await sql('SELECT situacao FROM instrumentos WHERE id = $1', [concorrente]))[0].situacao, 'EMPRESTADO');
+  });
+
+  await t.test('retirada iniciada primeiro registra horário posterior à devolução que liberou a unidade', async () => {
+    const instrumentoId = await unidade('CAIXA-DATAS');
+    const anterior = await postEmprestimo(loginAna.dados.usuario.id, instrumentoId);
+    assert.equal(anterior.status, 201);
+    const anteriorId = anterior.dados.emprestimo.id;
+    const iniciou = Promise.withResolvers();
+    const continuar = Promise.withResolvers();
+    const repositorioAtrasado = new EmprestimoRepository({
+      async connect() {
+        const conexao = await dbPool.connect();
+        return {
+          async query(texto, params) {
+            const resultado = await conexao.query(texto, params);
+            if (texto === 'BEGIN') {
+              iniciou.resolve();
+              await continuar.promise;
+            }
+            return resultado;
+          },
+          release: () => conexao.release(),
+        };
+      },
+    });
+
+    const novaRetirada = repositorioAtrasado.criar({ integranteId: biaId, instrumentoId });
+    const devolverAnterior = async () => {
+      try {
+        await Promise.race([iniciou.promise, novaRetirada]);
+        await dbPool.query('SELECT pg_sleep(0.025)');
+        const resposta = await chamar(`/emprestimos/${anteriorId}/devolucao`, {
+          method: 'PUT', cookie: diretoria, body: {},
+        });
+        assert.equal(resposta.status, 200);
+      } finally {
+        continuar.resolve();
+      }
+    };
+    const [novo] = await Promise.all([novaRetirada, devolverAnterior()]);
+    const [datas] = await sql(
+      `SELECT novo.retirada_em >= anterior.devolucao_em AS retirada_apos_devolucao
+       FROM emprestimos novo, emprestimos anterior
+       WHERE novo.id = $1 AND anterior.id = $2`,
+      [novo.id, anteriorId],
+    );
+    assert.equal(datas.retirada_apos_devolucao, true);
   });
 });
