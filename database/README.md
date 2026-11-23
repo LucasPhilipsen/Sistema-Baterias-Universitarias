@@ -24,12 +24,12 @@ A tabela `confirmacoes` registra a intenção de participação de um usuário (
 | `ensaio_id` | integer | Obrigatório, chave estrangeira para `ensaios.id` com `ON DELETE CASCADE` |
 | `usuario_id` | integer | Obrigatório, chave estrangeira para `usuarios.id` com `ON DELETE CASCADE` |
 | `tipo_instrumento_id` | integer | Obrigatório, chave estrangeira para `tipos_instrumentos.id` com `ON DELETE RESTRICT` |
-| `criado_em` | timestamptz | Obrigatório, padrão `CURRENT_TIMESTAMP` |
+| `criado_em` | timestamptz | Obrigatório, padrão `clock_timestamp()` |
 | `atualizado_em` | timestamptz | Opcional, nulo na criação; data/hora da última alteração de tipo ou cancelamento |
 | `cancelado_em` | timestamptz | Opcional; nulo se ativa, preenchido se cancelada |
 
 - A unicidade no PostgreSQL é garantida por `UNIQUE (usuario_id, ensaio_id)`, permitindo no máximo um registro por usuário e ensaio, mesmo sob requisições concorrentes.
-- O cancelamento é lógico (*soft delete*): atualizar `cancelado_em = CURRENT_TIMESTAMP` inativa a participação sem perder o histórico para auditoria.
+- O cancelamento preenche `cancelado_em` com o horário da gravação e mantém o registro para consulta e reativação.
 - Troca de tipo e reativação utilizam `UPDATE` ou `INSERT ... ON CONFLICT (usuario_id, ensaio_id) DO UPDATE`.
 - O contrato da API e a integração com o cálculo de demanda estão detalhados em [contrato de confirmações](../docs/contrato-confirmacoes.md).
 
@@ -121,7 +121,7 @@ psql -X -h localhost -p 5432 -U postgres -d bateria_confirmacoes_test_local -v O
 psql -X -h localhost -p 5432 -U postgres -d bateria_confirmacoes_test_local -v ON_ERROR_STOP=1 -f database/tests/confirmacoes.sql
 ```
 
-O teste `database/tests/confirmacoes.sql` confere a criação de confirmação inicial ativa, a restrição de unicidade sob concorrência (`UNIQUE (usuario_id, ensaio_id)`), chaves estrangeiras com usuários, ensaios e tipos de instrumento, proteção contra exclusão de tipo com confirmações ativas (`RESTRICT`), coerência cronológica de datas, troca de tipo de instrumento, cancelamento de participação, reativação, padrão de upsert idempotente e a consulta de demanda agregada por tipo (`WHERE cancelado_em IS NULL`). Todos os registros são revertidos ao final com `ROLLBACK`.
+O teste `database/tests/confirmacoes.sql` confere a confirmação inicial, a unicidade por usuário e ensaio, as chaves estrangeiras, a restrição de exclusão de tipos, a ordem das datas, a troca de tipo, o cancelamento, a reativação e a contagem de confirmações ativas por tipo (`WHERE cancelado_em IS NULL`). Todos os registros são revertidos ao final com `ROLLBACK`.
 
 ### Usuários e dados iniciais
 

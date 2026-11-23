@@ -1,6 +1,6 @@
 # Contrato de confirmação de participação por instrumento — SCRUM-37
 
-Contrato da história [Confirmar participação por instrumento (SCRUM-14)](https://pds20262-g14.atlassian.net/browse/SCRUM-14). Ele define a modelagem no PostgreSQL no script `005-criar-confirmacoes.sql` ([SCRUM-37](https://pds20262-g14.atlassian.net/browse/SCRUM-37), Vitor), orienta a implementação da API ([SCRUM-41](https://pds20262-g14.atlassian.net/browse/SCRUM-41), Vitor), a interface do integrante e os cards da agenda ([SCRUM-45](https://pds20262-g14.atlassian.net/browse/SCRUM-45), Pedro), e alinha o cálculo e a consulta de demanda ([SCRUM-39](https://pds20262-g14.atlassian.net/browse/SCRUM-39) / [SCRUM-43](https://pds20262-g14.atlassian.net/browse/SCRUM-43), Felipe) e o painel de demanda ([SCRUM-47](https://pds20262-g14.atlassian.net/browse/SCRUM-47), Pedro).
+Contrato da história [Confirmar participação por instrumento (SCRUM-14)](https://pds20262-g14.atlassian.net/browse/SCRUM-14). Define a tabela de confirmações e orienta a [API de participação (SCRUM-41)](https://pds20262-g14.atlassian.net/browse/SCRUM-41), a [interface na agenda (SCRUM-45)](https://pds20262-g14.atlassian.net/browse/SCRUM-45) e o [cálculo de demanda (SCRUM-43)](https://pds20262-g14.atlassian.net/browse/SCRUM-43).
 
 ---
 
@@ -22,18 +22,23 @@ A confirmação de participação representa o compromisso de um integrante ou d
      - `cancelado_em IS NOT NULL`: confirmação **cancelada** (não conta na demanda).
    - O registro permanece armazenado para fins de auditoria, histórico e reativação.
 4. **Ciclo de vida (Confirmar, Trocar Tipo, Cancelar e Reativar)**:
-   - **Confirmar pela primeira vez**: Insere um novo registro com `cancelado_em = NULL` e `criado_em = CURRENT_TIMESTAMP`.
-   - **Trocar o tipo de instrumento**: Atualiza `tipo_instrumento_id` para o novo tipo, mantendo `cancelado_em = NULL` e atualizando `atualizado_em = CURRENT_TIMESTAMP`. A demanda sai imediatamente de um tipo e entra no outro.
-   - **Cancelar participação**: Atualiza `cancelado_em = CURRENT_TIMESTAMP` e `atualizado_em = CURRENT_TIMESTAMP`.
-   - **Reativar participação cancelada**: Atualiza `tipo_instrumento_id` (caso o usuário queira reativar no mesmo ou em outro instrumento), define `cancelado_em = NULL` e `atualizado_em = CURRENT_TIMESTAMP`.
-   - **Idempotência com UPSERT no PostgreSQL**:
+   - **Confirmar pela primeira vez** cria um registro ativo com `criado_em` definido por `clock_timestamp()`.
+   - **Trocar o tipo de instrumento** atualiza o tipo e o horário da alteração. A próxima consulta move a demanda do tipo anterior para o novo.
+   - **Cancelar participação** preenche `cancelado_em` e `atualizado_em` com o mesmo instante. Calcular o valor após bloquear a confirmação ativa, usando o maior valor entre `criado_em`, `atualizado_em` e `clock_timestamp()`. Se a confirmação já estiver cancelada, preservar as datas.
+   - **Reativar** limpa `cancelado_em` e atualiza o tipo e o horário da alteração. O registro mantém o ID e a data da confirmação original.
+   - O exemplo de gravação abaixo usa o horário real da alteração. Em transações simultâneas, `CURRENT_TIMESTAMP` poderia ser anterior à criação do registro por outra transação.
      ```sql
-     INSERT INTO confirmacoes (ensaio_id, usuario_id, tipo_instrumento_id, criado_em)
-     VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+     INSERT INTO confirmacoes (ensaio_id, usuario_id, tipo_instrumento_id)
+     VALUES ($1, $2, $3)
      ON CONFLICT (usuario_id, ensaio_id) DO UPDATE
        SET tipo_instrumento_id = EXCLUDED.tipo_instrumento_id,
            cancelado_em = NULL,
-           atualizado_em = CURRENT_TIMESTAMP
+           atualizado_em = CASE
+             WHEN confirmacoes.cancelado_em IS NOT NULL
+               OR confirmacoes.tipo_instrumento_id <> EXCLUDED.tipo_instrumento_id
+             THEN GREATEST(confirmacoes.criado_em, confirmacoes.atualizado_em, clock_timestamp())
+             ELSE confirmacoes.atualizado_em
+           END
      RETURNING id, ensaio_id, usuario_id, tipo_instrumento_id, criado_em, atualizado_em, cancelado_em;
      ```
 
@@ -47,7 +52,7 @@ A confirmação de participação representa o compromisso de um integrante ou d
 | `ensaio_id` | `integer` | Não | — | FK para `ensaios(id)` com `ON DELETE CASCADE` |
 | `usuario_id` | `integer` | Não | — | FK para `usuarios(id)` com `ON DELETE CASCADE` |
 | `tipo_instrumento_id` | `integer` | Não | — | FK para `tipos_instrumentos(id)` com `ON DELETE RESTRICT` |
-| `criado_em` | `timestamptz` | Não | `CURRENT_TIMESTAMP` | Data/hora do registro inicial |
+| `criado_em` | `timestamptz` | Não | `clock_timestamp()` | Data/hora do registro inicial |
 | `atualizado_em` | `timestamptz` | Sim | `NULL` | Data/hora da última alteração de tipo ou cancelamento/reativação |
 | `cancelado_em` | `timestamptz` | Sim | `NULL` | `NULL` se ativa; preenchido se a participação foi cancelada |
 
@@ -95,14 +100,14 @@ Para garantir que nenhuma confirmação seja gravada em um ensaio recém-cancela
 
 ---
 
-## 4. Proposta de contrato para a interface (Pedro — SCRUM-45 e SCRUM-41)
+## 4. Contrato da API (SCRUM-41 e SCRUM-45)
 
 ### Convenções gerais
 
 - **Prefixo**: `/api`.
-- **Autenticação**: Exige sessão ativa (`exigirAutenticacao`). A identidade do integrante/diretor vem exclusivamente de `req.sessao.usuarioId`, evitando qualquer falsificação de identidade via corpo ou parâmetro de URL.
+- **Autenticação** exige sessão ativa. `exigirAutenticacao` preenche `req.usuario`. A API usa `req.usuario.id` para consultar e alterar a própria participação.
 - **Autorização**: Usuários com perfil `INTEGRANTE` e `DIRETORIA` podem confirmar sua própria participação.
-- **Proteção de Origem**: Métodos de escrita (`PUT` e `DELETE`) utilizam proteção de mesma origem (`exigirJsonMesmaOrigem` para `PUT`).
+- **Proteção de origem** segue a verificação atual do backend. O `PUT` exige JSON da mesma origem. O `DELETE` aplica a mesma regra de origem e recebe a requisição sem corpo.
 - **Campos adicionais**: Qualquer campo não reconhecido no corpo ou parâmetro de busca inesperado na URL gera `400 DADOS_INVALIDOS`.
 
 ### Rotas
@@ -145,7 +150,6 @@ Permite ao usuário verificar em qual instrumento confirmou presença no ensaio,
   "participacao": null
 }
 ```
-*(Ver item de alinhamento com Pedro abaixo sobre a alternativa de retornar `404 PARTICIPACAO_NAO_ENCONTRADA`).*
 
 ---
 
@@ -192,7 +196,7 @@ Operação unificada e idempotente:
 
 `DELETE /api/ensaios/:id/minha-participacao`
 
-Marca a participação como cancelada (`cancelado_em = CURRENT_TIMESTAMP`), retirando o usuário da contagem de demanda do ensaio sem apagar o histórico.
+Preenche `cancelado_em` com o horário da gravação. A participação deixa de contar para a demanda e continua registrada.
 
 - **Idempotência**: se o usuário já não tiver participação ativa (ou se já tiver cancelado), a rota responde sucesso normalmente.
 
@@ -223,7 +227,7 @@ Formato padronizado: `{ "error": { "code": "...", "message": "..." } }`.
 
 ## 5. Integração com a comparação de demanda (Felipe — SCRUM-39 / SCRUM-43)
 
-Na história SCRUM-39, Felipe definiu o cálculo da demanda por tipo de instrumento em `GET /api/ensaios/:id/demanda`. 
+O [contrato de demanda (SCRUM-39)](https://pds20262-g14.atlassian.net/browse/SCRUM-39) define a consulta por tipo de instrumento em `GET /api/ensaios/:id/demanda`.
 
 ### Consulta SQL de demanda atualizada
 
@@ -287,26 +291,4 @@ psql -X -h localhost -p 5432 -U postgres -d bateria_confirmacoes_test_local -v O
 psql -X -h localhost -p 5432 -U postgres -d bateria_confirmacoes_test_local -v ON_ERROR_STOP=1 -f database/tests/confirmacoes.sql
 ```
 
-O teste `database/tests/confirmacoes.sql` executa todas as validações e reverte as alterações com `ROLLBACK` ao final.
-
----
-
-## 7. Decisões de design e pendências para validação
-
-### Para validação com Pedro (Interface e Agenda — SCRUM-45)
-
-1. **Retorno de `GET /minha-participacao` quando o usuário não tiver confirmação ativa**:
-   - **Proposta recomendada**: Responder HTTP `200 OK` com `{ "participacao": null }`. Permite ao componente React renderizar diretamente o botão de "Confirmar Presença" sem disparar erros no console do navegador nem exigir `catch` de 404 em cada card da agenda.
-   - **Alternativa REST clássica**: Responder HTTP `404 Not Found` com `{ "error": { "code": "PARTICIPACAO_NAO_ENCONTRADA", "message": "..." } }`.
-2. **Inclusão do nome do tipo de instrumento na resposta**:
-   - A resposta proposta inclui `tipoInstrumentoNome` (obtido via `JOIN` com `tipos_instrumentos`) para que o card do ensaio exiba imediatamente o instrumento sem necessidade de consulta secundária. Validar se atende à renderização do card.
-3. **Status de sucesso do `DELETE`**:
-   - A proposta adota HTTP `200 OK` com `{ "participacao": null }`. Validar se Pedro prefere `200` com objeto ou `204 No Content`.
-
-### Para validação com Felipe (Demanda — SCRUM-39 / SCRUM-43)
-
-1. **Ajuste na subconsulta de `DemandaRepository` (`SQL_DEMANDA_POR_TIPO`)**:
-   - Na SCRUM-39 e SCRUM-43, foi esboçado o uso de `situacao = 'ATIVA'`.
-   - Com a modelagem aqui definida, a condição deve ser alterada para `cancelado_em IS NULL`. Validar essa alteração em `SQL_DEMANDA_POR_TIPO` com Felipe (o que já havia sido previsto por ele na nota da SCRUM-43).
-2. **Uso do índice parcial `confirmacoes_ativas_demanda_idx`**:
-   - Confirmar com Felipe que o índice parcial atende plenamente à volumetria esperada de confirmações ativas.
+O teste `database/tests/confirmacoes.sql` confere as restrições e o ciclo de participação e reverte os dados com `ROLLBACK` ao final. A SCRUM-41 deve conferir também duas requisições simultâneas em conexões distintas e a concorrência com o cancelamento do ensaio.

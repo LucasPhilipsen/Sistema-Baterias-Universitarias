@@ -5,7 +5,7 @@ CREATE TABLE confirmacoes (
   ensaio_id integer NOT NULL REFERENCES ensaios(id) ON DELETE CASCADE,
   usuario_id integer NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
   tipo_instrumento_id integer NOT NULL REFERENCES tipos_instrumentos(id) ON DELETE RESTRICT,
-  criado_em timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  criado_em timestamptz NOT NULL DEFAULT clock_timestamp(),
   atualizado_em timestamptz,
   cancelado_em timestamptz,
 

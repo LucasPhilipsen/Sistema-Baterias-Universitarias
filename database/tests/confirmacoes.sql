@@ -11,6 +11,7 @@ DECLARE
   v_tipo2_id integer;
   v_confirmacao_id integer;
   v_contagem integer;
+  v_cancelado_em timestamptz;
 BEGIN
   IF current_database() !~ '^bateria_(confirmacoes|integracao)_test_[a-z0-9_]+$'
      AND current_database() !~ '^bateria_confirmacoes_test$' THEN
@@ -78,7 +79,7 @@ BEGIN
 
   BEGIN
     INSERT INTO confirmacoes (ensaio_id, usuario_id, tipo_instrumento_id)
-    VALUES (v_ensaio_id, v_usuario1_id, 2147483647);
+    VALUES (v_ensaio_id, v_usuario2_id, 2147483647);
     RAISE EXCEPTION 'Tipo de instrumento inexistente foi aceito.';
   EXCEPTION WHEN foreign_key_violation THEN NULL;
   END;
@@ -87,7 +88,7 @@ BEGIN
   BEGIN
     DELETE FROM tipos_instrumentos WHERE id = v_tipo1_id;
     RAISE EXCEPTION 'Exclusão de tipo com confirmação vinculada foi aceita.';
-  EXCEPTION WHEN foreign_key_violation THEN NULL;
+  EXCEPTION WHEN restrict_violation THEN NULL;
   END;
 
   -- 5. Restrições de coerência temporal
@@ -100,7 +101,7 @@ BEGIN
 
   -- 6. Troca de tipo de instrumento
   UPDATE confirmacoes
-  SET tipo_instrumento_id = v_tipo2_id, atualizado_em = CURRENT_TIMESTAMP
+  SET tipo_instrumento_id = v_tipo2_id, atualizado_em = clock_timestamp()
   WHERE id = v_confirmacao_id;
 
   IF NOT EXISTS (
@@ -111,8 +112,9 @@ BEGIN
   END IF;
 
   -- 7. Cancelamento de participação
+  v_cancelado_em := clock_timestamp();
   UPDATE confirmacoes
-  SET cancelado_em = CURRENT_TIMESTAMP, atualizado_em = CURRENT_TIMESTAMP
+  SET cancelado_em = v_cancelado_em, atualizado_em = v_cancelado_em
   WHERE id = v_confirmacao_id;
 
   SELECT count(*) INTO v_contagem
@@ -125,7 +127,7 @@ BEGIN
 
   -- 8. Reativação de participação
   UPDATE confirmacoes
-  SET tipo_instrumento_id = v_tipo1_id, cancelado_em = NULL, atualizado_em = CURRENT_TIMESTAMP
+  SET tipo_instrumento_id = v_tipo1_id, cancelado_em = NULL, atualizado_em = clock_timestamp()
   WHERE id = v_confirmacao_id;
 
   SELECT count(*) INTO v_contagem
@@ -136,21 +138,16 @@ BEGIN
     RAISE EXCEPTION 'Falha ao reativar participação cancelada.';
   END IF;
 
-  -- 9. Idempotência / Upsert sob concorrência (ON CONFLICT DO UPDATE)
+  -- 9. Repetir a gravação mantém o mesmo registro (ON CONFLICT DO UPDATE)
   INSERT INTO confirmacoes (ensaio_id, usuario_id, tipo_instrumento_id)
-  VALUES (v_ensaio_id, v_usuario2_id, v_tipo2_id)
-  ON CONFLICT (usuario_id, ensaio_id) DO UPDATE
-    SET tipo_instrumento_id = EXCLUDED.tipo_instrumento_id,
-        cancelado_em = NULL,
-        atualizado_em = CURRENT_TIMESTAMP;
+  VALUES (v_ensaio_id, v_usuario2_id, v_tipo2_id);
 
-  -- Repetir upsert mudando para tipo 1
   INSERT INTO confirmacoes (ensaio_id, usuario_id, tipo_instrumento_id)
   VALUES (v_ensaio_id, v_usuario2_id, v_tipo1_id)
   ON CONFLICT (usuario_id, ensaio_id) DO UPDATE
     SET tipo_instrumento_id = EXCLUDED.tipo_instrumento_id,
         cancelado_em = NULL,
-        atualizado_em = CURRENT_TIMESTAMP;
+        atualizado_em = GREATEST(confirmacoes.criado_em, confirmacoes.atualizado_em, clock_timestamp());
 
   SELECT count(*) INTO v_contagem
   FROM confirmacoes
