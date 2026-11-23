@@ -1,0 +1,19 @@
+.page, .section { display: grid; gap: 32px; min-width: 0; }
+.toolbar, .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.toolbar { justify-content: space-between; }
+.panel { border: 1px solid var(--border); border-radius: var(--radius-cards); padding: 32px; background: var(--color-mist); min-width: 0; overflow-wrap: anywhere; }
+.panel h2 { margin-bottom: 24px; }
+.panel form { max-width: 760px; }
+.panel .actions { margin-top: 24px; }
+.note { margin: 0 0 32px; color: var(--muted); }
+.failure { margin-bottom: 24px; }
+.search { max-width: 760px; }
+.search > div { margin-bottom: 0; }
+.list { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--border); }
+.member { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 24px; padding: 24px 0; border-bottom: 1px solid var(--border); min-width: 0; }
+.identity { flex: 1 1 240px; min-width: 0; overflow-wrap: anywhere; }
+.identity p { margin: 8px 0 0; color: var(--muted); }
+.details { display: grid; gap: 8px; margin: 0 0 24px; }
+.details dt { color: var(--muted); font-size: 14px; }
+.details dd { margin: 0 0 16px; }
+@media (max-width: 600px) { .panel { padding: 20px; } .toolbar { align-items: start; } }

@@ -2,8 +2,8 @@ import { createRequire } from 'node:module';
 
 // Cada conferência SQL possui seu pool; encerrá-lo não afeta outro arquivo de testes.
 export function postgresTestPool() {
-  if (!/^bateria_frontend_(?:estoque_)?test_[a-z0-9_]+$/.test(process.env.DB_NAME ?? '')
-    || ![process.env.ESTOQUE_E2E_POSTGRES, process.env.ENSAIOS_E2E_POSTGRES].includes('1')) {
+  if (!/^bateria_frontend_(?:(?:estoque|integrantes)_)?test_[a-z0-9_]+$/.test(process.env.DB_NAME ?? '')
+    || ![process.env.ESTOQUE_E2E_POSTGRES, process.env.ENSAIOS_E2E_POSTGRES, process.env.INTEGRANTES_E2E_POSTGRES].includes('1')) {
     throw new Error('A conferência SQL exige opt-in e banco PostgreSQL descartável.');
   }
   const { Pool } = createRequire(new URL('../../../backend/package.json', import.meta.url))('pg');

@@ -1,4 +1,4 @@
-# Interface — acesso, sessão, ensaios e estoque (SCRUM-24, SCRUM-28 e SCRUM-32)
+# Interface — acesso, sessão, ensaios, estoque e integrantes
 
 JavaScript, React 19, Vite 8 e CSS Modules. Requer Node.js 24 LTS e npm.
 
@@ -36,7 +36,7 @@ O formulário usa `POST /api/auth/login`, envia somente `email` e `senha` e most
 - A revalidação automática acontece em segundo plano e preserva a tela, o foco e os formulários abertos. A entrada em uma rota protegida aguarda a conferência; expiração ou falha na consulta bloqueiam o acesso.
 - `POST /api/auth/logout` revoga a sessão antes de confirmar a saída. Uma falha bloqueia o conteúdo e oferece uma nova tentativa; não anuncia uma revogação que não aconteceu.
 - A entrada e a saída da conta são comunicadas às outras abas por BroadcastChannel quando disponível. A revalidação ao retomar a aba e nas rotas também funciona sem esse recurso.
-- Integrantes acessam `/ensaios` e `/instrumentos`; diretoria também acessa `/administracao`. O destino padrão após login é `/ensaios` para integrante e `/administracao` para diretoria. O destino anterior é recuperado somente se for interno, conhecido e permitido.
+- Integrantes acessam `/ensaios` e `/instrumentos`; diretoria também acessa `/administracao` e `/integrantes`. O destino padrão após login é `/ensaios` para integrante e `/administracao` para diretoria. O destino anterior é recuperado somente se for interno, conhecido e permitido.
 - A área da diretoria tem proteção de rota, inclusive ao digitar a URL ou recarregar. Sessão ausente redireciona para `/acesso`; perfil sem permissão recebe uma mensagem de acesso restrito. Enquanto a sessão é verificada, o conteúdo protegido não é exibido. Perfis desconhecidos e falhas na consulta bloqueiam o acesso.
 - As operações administrativas continuam protegidas pelos componentes intermediários de autorização da SCRUM-23 no servidor. A página administrativa é uma entrada para os módulos. A agenda da SCRUM-28 permite gerir ensaios; o módulo da SCRUM-32 permite cadastrar e editar tipos e unidades e consultar o estoque.
 
@@ -120,6 +120,68 @@ Arquivos principais: `src/pages/Instrumentos.jsx`, `InstrumentoForm.jsx`,
 O backend da SCRUM-31 e as estruturas `001`, `002` e `004` precisam estar
 disponíveis no ambiente. Preparar a tela não substitui conferir esse ambiente.
 
+## Integrantes — SCRUM-44
+
+O módulo `/integrantes` aparece na navegação, na página inicial e na área da diretoria
+somente para esse perfil. A rota também bloqueia consulta e alteração para integrantes,
+inclusive por URL direta e recarga, seguindo o [contrato da SCRUM-36](../docs/contrato-integrantes.md).
+
+A listagem permite buscar localmente por nome ou e-mail, sem enviar filtros não aceitos
+pela API. As ações Consultar e Editar buscam o registro atual em `GET /integrantes/:id`.
+O cadastro envia `nome`, `email` e `senha` por `POST /integrantes`; a edição envia
+somente `nome` e `email` por `PUT /integrantes/:id`. Todas as chamadas usam
+`session.request()`. O backend define o perfil `INTEGRANTE`.
+
+O formulário valida nome até 120 caracteres, e-mail único até 254 caracteres e senha
+inicial com pelo menos 12 caracteres Unicode e até 1024 bytes UTF-8, preservando espaços
+da senha. A senha aparece apenas no cadastro e é descartada ao fechar ou concluir o
+formulário. Os leitores mantêm somente `id`, `nome`, `email` e `perfil`; a lista exibe
+nome e e-mail. Não há senha, hash ou opção de alterar perfil na consulta ou edição.
+
+Há estados de carregamento, lista vazia, busca sem resultados, consulta individual com
+nova tentativa, validação por campo e falha de gravação. E-mail duplicado destaca o campo
+e preserva o formulário. Durante o envio, campos e ações ficam bloqueados. A tela anuncia
+sucesso somente após resposta válida da API e consulta novamente a lista. Em falha de
+rede, orienta atualizar a lista antes de repetir o envio. Erros `401` e `403` seguem o
+tratamento de sessão existente, incluindo remoção do formulário quando o perfil muda.
+
+Arquivos principais: `src/pages/Integrantes.jsx`, `IntegranteForm.jsx`, `integrantes.js`
+e `Integrantes.module.css`. A API da SCRUM-40 e as tabelas de usuários e sessões precisam
+estar disponíveis; não há dados de demonstração no código da tela.
+
+Para conferir no navegador, com as dependências de frontend e backend instaladas:
+
+```powershell
+$env:PLAYWRIGHT_CHANNEL = 'chrome'
+try { npm run test:e2e -- integrantes } finally { Remove-Item Env:PLAYWRIGHT_CHANNEL }
+```
+
+Por padrão, o servidor de testes usa a API, o serviço de integrantes, o scrypt e os cookies
+reais com repositórios em memória compartilhados com o login. `integrantes-errors.spec.js`
+intercepta respostas para conferir indisponibilidade e outros estados de falha.
+
+Para conferir persistência real, crie um banco PostgreSQL vazio e descartável com prefixo
+`bateria_frontend_integrantes_test_`. Configure `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`
+e `DB_PASSWORD` no ambiente local. O teste recusa outros nomes e bancos já preenchidos;
+aplica as estruturas de usuários, sessões e ensaios e os usuários fictícios. IDs novos
+começam em 73 para conferir o uso dos identificadores reais. Em `frontend/`:
+
+```powershell
+$env:INTEGRANTES_E2E_POSTGRES = '1'
+$env:PLAYWRIGHT_CHANNEL = 'chrome'
+try {
+  npm run test:e2e -- integrantes-api
+} finally {
+  Remove-Item Env:INTEGRANTES_E2E_POSTGRES, Env:PLAYWRIGHT_CHANNEL
+}
+```
+
+Use outro banco vazio para repetir e descarte o banco após a execução. Nesse modo não
+reutilize o servidor de testes em memória. A suíte confere cadastro, consulta individual,
+edição, recarga, login com novo e-mail e a senha inicial, duplicidade e bloqueios por
+perfil/sessão. Também consulta o banco diretamente para conferir contato, perfil e hash.
+O [registro da SCRUM-44](../docs/scrum-44-validacao.md) separa os resultados reais dos simulados.
+
 ## Configuração e publicação
 
 `.env.example` documenta `VITE_API_BASE_URL`; vazio usa `/api`. Essa variável fica pública na versão compilada. Na configuração atual da API, use a mesma origem e um proxy reverso para `/api`: o servidor não habilita CORS e recusa entrada e saída de contas por outra origem. Uma URL externa exige alinhamento de CORS, cookies e origem com o responsável pela API.
@@ -131,7 +193,7 @@ npm run preview
 
 O comando `build` gera a versão compilada em `dist/`. O comando `preview` disponibiliza essa versão localmente e herda o proxy configurado para o servidor em localhost:3000; mantenha a API local em execução. A hospedagem publicada deve encaminhar `/api` para o servidor. Em produção, o cookie Secure exige HTTPS.
 
-A hospedagem deve servir `index.html` nas rotas do BrowserRouter (`/acesso`, `/ensaios`, `/instrumentos`, `/administracao`), preservando os caminhos da API.
+A hospedagem deve servir `index.html` nas rotas do BrowserRouter (`/acesso`, `/ensaios`, `/instrumentos`, `/integrantes`, `/administracao`), preservando os caminhos da API.
 
 ## Testes
 
