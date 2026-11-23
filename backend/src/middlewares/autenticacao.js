@@ -28,10 +28,7 @@ export function exigirProprioUsuarioOuDiretoria(parametro = 'usuarioId') {
   };
 }
 
-export function exigirJsonMesmaOrigem(req, res, next) {
-  if (!req.is('application/json')) {
-    throw new ErroAplicacao(415, 'JSON_OBRIGATORIO', 'Envie a requisição com Content-Type application/json.');
-  }
+export function exigirMesmaOrigem(req, res, next) {
   const origin = req.get('Origin');
   let origemValida = req.get('Sec-Fetch-Site') !== 'cross-site';
   if (origin) {
@@ -44,4 +41,11 @@ export function exigirJsonMesmaOrigem(req, res, next) {
   }
   if (!origemValida) throw new ErroAplicacao(403, 'ORIGEM_INVALIDA', 'Origem da requisição não permitida.');
   next();
+}
+
+export function exigirJsonMesmaOrigem(req, res, next) {
+  if (!req.is('application/json')) {
+    throw new ErroAplicacao(415, 'JSON_OBRIGATORIO', 'Envie a requisição com Content-Type application/json.');
+  }
+  return exigirMesmaOrigem(req, res, next);
 }
