@@ -123,6 +123,30 @@ psql -X -h localhost -p 5432 -U postgres -d bateria_confirmacoes_test_local -v O
 
 O teste `database/tests/confirmacoes.sql` confere a confirmação inicial, a unicidade por usuário e ensaio, as chaves estrangeiras, a restrição de exclusão de tipos, a ordem das datas, a troca de tipo, o cancelamento, a reativação e a contagem de confirmações ativas por tipo (`WHERE cancelado_em IS NULL`). Todos os registros são revertidos ao final com `ROLLBACK`.
 
+### Empréstimos (SCRUM-38)
+
+O script `006-criar-emprestimos.sql` cria a tabela `emprestimos`, com referências restritivas a integrantes e unidades, datas de retirada/devolução e índice único parcial para impedir mais de um empréstimo ativo por unidade. A situação atual da unidade permanece em `instrumentos.situacao`; as operações do backend atualizam a tabela e o registro de empréstimo na mesma transação.
+
+Em um banco de desenvolvimento com scripts `001` a `004` já aplicados, execute uma vez:
+
+```powershell
+psql -X -h localhost -p 5432 -U postgres -d bateria_db -v ON_ERROR_STOP=1 -f database/006-criar-emprestimos.sql
+```
+
+Para testar as rotas e transações com PostgreSQL real, prepare `backend/.env.test` para um banco vazio chamado, por exemplo, `bateria_emprestimos_test_local`. O teste aplica `001`, `002`, `004`, `006` e as contas fictícias; recusa banco fora do prefixo ou com tabelas existentes. Em `backend/`, execute:
+
+```powershell
+$env:NODE_ENV = 'test'
+$env:EMPRESTIMOS_PG_INTEGRATION = '1'
+try {
+  node --env-file-if-exists=.env.test --test tests/emprestimos.postgres.test.js
+} finally {
+  Remove-Item Env:EMPRESTIMOS_PG_INTEGRATION
+}
+```
+
+O teste confere autorização, criação persistida, atualização do estoque, histórico isolado por integrante, recusa de unidade em manutenção, retirada concorrente e devolução repetida após uma nova retirada. Os registros ficam restritos ao banco descartável.
+
 ### Usuários e dados iniciais
 
 Teste da entidade e dos hashes das contas fictícias, sem depender do servidor HTTP ou de pacotes npm:

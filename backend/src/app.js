@@ -7,6 +7,7 @@ import { demandaService as servicoDemandaPadrao } from './config/demanda.js';
 import { servicosEstoque } from './config/estoque.js';
 import { integranteService as servicoIntegrantePadrao } from './config/integrantes.js';
 import { confirmacaoService as servicoConfirmacaoPadrao } from './config/confirmacoes.js';
+import { emprestimoService as servicoEmprestimoPadrao } from './config/emprestimos.js';
 import { env } from './config/env.js';
 import { createAuthRouter } from './routes/auth.js';
 import { createEnsaiosRouter } from './routes/ensaios.js';
@@ -14,6 +15,7 @@ import { createDemandaRouter } from './routes/demanda.js';
 import { createEstoqueRouter } from './routes/estoque.js';
 import { createIntegrantesRouter } from './routes/integrantes.js';
 import { createConfirmacoesRouter } from './routes/confirmacoes.js';
+import { createEmprestimosRouter } from './routes/emprestimos.js';
 
 export function createApp({
   authService = servicoPadrao,
@@ -22,6 +24,7 @@ export function createApp({
   estoque = servicosEstoque,
   integranteService = servicoIntegrantePadrao,
   confirmacaoService = servicoConfirmacaoPadrao,
+  emprestimoService = servicoEmprestimoPadrao,
   cookieSeguro = env.nodeEnv === 'production',
   limiteTentativas = 20,
 } = {}) {
@@ -44,6 +47,7 @@ export function createApp({
   }));
   app.use('/api/ensaios', createDemandaRouter({ authService, demandaService }));
   app.use('/api/integrantes', createIntegrantesRouter({ authService, integranteService }));
+  app.use('/api/emprestimos', createEmprestimosRouter({ authService, emprestimoService }));
   app.use('/api', createEstoqueRouter({
     authService,
     ...estoque,
