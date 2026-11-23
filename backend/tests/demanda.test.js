@@ -26,7 +26,7 @@ class EnsaiosEmMemoria {
   buscarPorId = async id => this.dados.get(id) ?? null;
 }
 
-// Reproduz a consulta: todos os tipos, confirmações ATIVA do ensaio e unidades DISPONIVEL.
+// Reproduz a consulta: todos os tipos, confirmações do ensaio com canceladoEm nulo e unidades DISPONIVEL.
 // Devolve as contagens como texto, como o driver pode fazer, para conferir a conversão do serviço.
 class DemandaEmMemoria {
   tipos = [];
@@ -42,7 +42,7 @@ class DemandaEmMemoria {
     for (let i = 0; i < quantidade; i++) this.unidades.push({ tipoInstrumentoId: tipo.id, situacao });
   }
   confirmar(ensaio, usuarioId, tipo) {
-    const confirmacao = { ensaioId: ensaio.id, usuarioId, tipoInstrumentoId: tipo.id, situacao: 'ATIVA' };
+    const confirmacao = { ensaioId: ensaio.id, usuarioId, tipoInstrumentoId: tipo.id, canceladoEm: null };
     this.confirmacoes.push(confirmacao);
     return confirmacao;
   }
@@ -53,7 +53,7 @@ class DemandaEmMemoria {
       .map(tipo => ({
         tipoInstrumentoId: tipo.id,
         nome: tipo.nome,
-        confirmados: String(this.confirmacoes.filter(c => c.ensaioId === ensaioId && c.situacao === 'ATIVA' && c.tipoInstrumentoId === tipo.id).length),
+        confirmados: String(this.confirmacoes.filter(c => c.ensaioId === ensaioId && c.canceladoEm === null &&c.tipoInstrumentoId === tipo.id).length),
         disponiveis: String(this.unidades.filter(u => u.tipoInstrumentoId === tipo.id && u.situacao === 'DISPONIVEL').length),
       }));
   };
@@ -187,8 +187,13 @@ test('cancelamento, troca de tipo e movimentações aparecem na próxima consult
 
   assert.equal(linha(await consultar(caminho), 'Caixa').falta, 1);
 
-  primeira.situacao = 'CANCELADA';
+  primeira.canceladoEm = new Date();
   assert.deepEqual(linha(await consultar(caminho), 'Caixa'), { tipoInstrumentoId: caixa.id, nome: 'Caixa', confirmados: 1, disponiveis: 1, falta: 0 });
+
+  // Reativar a participação volta a deixar canceladoEm nulo.
+  primeira.canceladoEm = null;
+  assert.equal(linha(await consultar(caminho), 'Caixa').confirmados, 2);
+  primeira.canceladoEm = new Date();
 
   segunda.tipoInstrumentoId = surdo.id;
   let resposta = await consultar(caminho);
@@ -297,7 +302,8 @@ test('DemandaRepository usa SQL parametrizado e devolve as linhas da consulta', 
   assert.deepEqual(linhas, [{ tipoInstrumentoId: 1 }]);
   assert.deepEqual(chamadas, [{ sql: SQL_DEMANDA_POR_TIPO, parametros: [7] }]);
   assert.match(SQL_DEMANDA_POR_TIPO, /ensaio_id = \$1/);
-  assert.match(SQL_DEMANDA_POR_TIPO, /situacao = 'ATIVA'/);
+  assert.match(SQL_DEMANDA_POR_TIPO, /ensaio_id = \$1 AND cancelado_em IS NULL/);
+  assert.doesNotMatch(SQL_DEMANDA_POR_TIPO, /'ATIVA'/);
   assert.match(SQL_DEMANDA_POR_TIPO, /i\.situacao = 'DISPONIVEL'/);
   assert.match(SQL_DEMANDA_POR_TIPO, /FROM tipos_instrumentos t\s+LEFT JOIN instrumentos/);
 });
