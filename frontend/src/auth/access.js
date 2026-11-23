@@ -6,7 +6,7 @@ const internalUrlBase = 'https://bateria.invalid';
 export function canAccess(pathname, usuario) {
   if (!Object.values(profiles).includes(usuario?.perfil)) return false;
   pathname = pathname.replace(/\/+$/, '') || '/';
-  if (['/administracao', '/integrantes'].includes(pathname)) return usuario.perfil === profiles.DIRETORIA;
+  if (['/administracao', '/integrantes', '/demanda'].includes(pathname)) return usuario.perfil === profiles.DIRETORIA;
   return ['/', '/ensaios', '/instrumentos'].includes(pathname);
 }
 

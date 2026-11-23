@@ -33,14 +33,16 @@ const authService = new AuthService({
   },
   senhas: new SenhaService(),
 });
-const services = process.env.INTEGRANTES_E2E_POSTGRES === '1'
+const services = process.env.DEMANDA_E2E_BACKEND_ROOT
+  ? await (await import('./support/demanda-api.js')).externalDemandaApi(process.env.DEMANDA_E2E_BACKEND_ROOT)
+  : process.env.INTEGRANTES_E2E_POSTGRES === '1'
   ? await (await import('./support/integrantes-postgres.js')).postgresIntegrantes()
   : process.env.ESTOQUE_E2E_POSTGRES === '1'
   ? await (await import('./support/estoque-postgres.js')).postgresEstoque()
   : process.env.ENSAIOS_E2E_POSTGRES === '1'
   ? await (await import('./support/postgres.js')).postgresServices()
   : { authService, ensaioService: memoryEnsaios(), estoque: await memoryEstoque(), integranteService: memoryIntegrantes(usuarios) };
-const app = createApp({ authService: services.authService, ensaioService: services.ensaioService, estoque: services.estoque, integranteService: services.integranteService, limiteTentativas: 1000 });
+const app = services.app ?? createApp({ authService: services.authService, ensaioService: services.ensaioService, estoque: services.estoque, integranteService: services.integranteService, limiteTentativas: 1000 });
 app.get('/api/e2e/diretoria', exigirAutenticacao(services.authService), exigirDiretoria, (req, res) => res.json({ permitido: true }));
 app.use(errorHandler);
 const api = app.listen(0, '127.0.0.1');

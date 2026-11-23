@@ -1,4 +1,4 @@
-# Interface — acesso, sessão, ensaios, estoque e integrantes
+# Interface — acesso, sessão, ensaios, estoque, integrantes e demanda
 
 JavaScript, React 19, Vite 8 e CSS Modules. Requer Node.js 24 LTS e npm.
 
@@ -36,7 +36,7 @@ O formulário usa `POST /api/auth/login`, envia somente `email` e `senha` e most
 - A revalidação automática acontece em segundo plano e preserva a tela, o foco e os formulários abertos. A entrada em uma rota protegida aguarda a conferência; expiração ou falha na consulta bloqueiam o acesso.
 - `POST /api/auth/logout` revoga a sessão antes de confirmar a saída. Uma falha bloqueia o conteúdo e oferece uma nova tentativa; não anuncia uma revogação que não aconteceu.
 - A entrada e a saída da conta são comunicadas às outras abas por BroadcastChannel quando disponível. A revalidação ao retomar a aba e nas rotas também funciona sem esse recurso.
-- Integrantes acessam `/ensaios` e `/instrumentos`; diretoria também acessa `/administracao` e `/integrantes`. O destino padrão após login é `/ensaios` para integrante e `/administracao` para diretoria. O destino anterior é recuperado somente se for interno, conhecido e permitido.
+- Integrantes acessam `/ensaios` e `/instrumentos`; diretoria também acessa `/administracao`, `/integrantes` e `/demanda`. O destino padrão após login é `/ensaios` para integrante e `/administracao` para diretoria. O destino anterior é recuperado somente se for interno, conhecido e permitido.
 - A área da diretoria tem proteção de rota, inclusive ao digitar a URL ou recarregar. Sessão ausente redireciona para `/acesso`; perfil sem permissão recebe uma mensagem de acesso restrito. Enquanto a sessão é verificada, o conteúdo protegido não é exibido. Perfis desconhecidos e falhas na consulta bloqueiam o acesso.
 - As operações administrativas continuam protegidas pelos componentes intermediários de autorização da SCRUM-23 no servidor. A página administrativa é uma entrada para os módulos. A agenda da SCRUM-28 permite gerir ensaios; o módulo da SCRUM-32 permite cadastrar e editar tipos e unidades e consultar o estoque.
 
@@ -182,6 +182,66 @@ edição, recarga, login com novo e-mail e a senha inicial, duplicidade e bloque
 perfil/sessão. Também consulta o banco diretamente para conferir contato, perfil e hash.
 O [registro da SCRUM-44](../docs/scrum-44-validacao.md) separa os resultados reais dos simulados.
 
+## Demanda e disponibilidade — SCRUM-47
+
+A diretoria encontra o painel em **Diretoria → Demanda e disponibilidade**, no card da
+página inicial ou diretamente em `/demanda`. Integrantes não veem esse card e recebem
+acesso restrito na URL, inclusive após recarregar.
+
+A lista vem de `session.request('/ensaios?situacao=AGENDADO')`. Ao escolher um ensaio,
+o painel consulta `session.request('/ensaios/' + id + '/demanda')`, sem corpo ou parâmetros
+adicionais. Não há IDs nem dados fictícios no módulo. Os campos `confirmados`, `disponiveis`
+e `falta` são os números retornados pela API, conforme o contrato da SCRUM-39; a tela não
+refaz o cálculo. Tipos com falta recebem destaque de cor e o texto **Insuficiente**.
+
+O aviso permanente explica que a comparação usa o estoque atual e não reserva unidades.
+`calculadoEm` aparece em `America/Sao_Paulo`, independentemente do fuso do navegador.
+**Atualizar comparação** repete a consulta sem cache. Os resultados anteriores saem da tela
+enquanto a consulta ocorre; respostas atrasadas de outra seleção não substituem a atual.
+**Atualizar ensaios** consulta novamente a agenda e remove seleções que deixaram de estar
+agendadas. O usuário escolhe o ensaio explicitamente; o painel não guarda essa seleção em storage.
+
+Há estados para agenda vazia, ausência de tipos, carregamento, falha de conexão, resposta
+inválida, sessão expirada, falta de permissão, ensaio inexistente e ensaio cancelado. Ao
+falhar uma atualização, a tela não mantém números antigos como se fossem atuais.
+
+Arquivos principais: `src/pages/Demanda.jsx`, `Demanda.module.css`, `demanda.js` e
+`useDemanda.js`. O painel precisa da API de demanda da SCRUM-43. A `main` usada nesta
+entrega ainda não possui essa rota; o frontend não inclui uma rota substituta em produção.
+
+Para testar os estados da interface com respostas interceptadas e sessão real:
+
+```powershell
+$env:PLAYWRIGHT_CHANNEL = 'chrome'
+try { npm run test:e2e -- demanda.spec } finally { Remove-Item Env:PLAYWRIGHT_CHANNEL }
+```
+
+Para testar sem interceptar as rotas HTTP de demanda, prepare um checkout separado da
+branch `feature/SCRUM-43-calculo-demanda` e instale as dependências de seu `backend/`.
+Informe o caminho da raiz desse checkout (não a pasta backend):
+
+```powershell
+$env:DEMANDA_E2E_BACKEND_ROOT = 'C:/caminho/checkout-SCRUM-43'
+$env:PLAYWRIGHT_CHANNEL = 'chrome'
+try {
+  npm run test:e2e -- demanda-api.spec
+} finally {
+  Remove-Item Env:DEMANDA_E2E_BACKEND_ROOT, Env:PLAYWRIGHT_CHANNEL
+}
+```
+
+Esse modo usa a aplicação Express, autenticação, sessão, controller, serviço e cálculo
+reais daquele checkout, com repositórios e movimentações simulados em memória. Ele exige
+`NODE_ENV=test`, imposto pelo servidor exclusivo de testes. Não comprova a integração SQL
+ou o fluxo real de confirmações e empréstimos. Sem o caminho explícito, os quatro cenários
+de `demanda-api.spec.js` são ignorados.
+
+O contrato da SCRUM-39 já está na `main` e define confirmações ativas por
+`cancelado_em IS NULL`, conforme a SCRUM-37. O backend da SCRUM-43 usado na conferência
+(commit `e816eba`) ainda consulta `situacao = 'ATIVA'`. A integração com PostgreSQL precisa
+aguardar a adequação dessa consulta e a disponibilização dos módulos reais.
+Os resultados e limites da conferência estão no [registro da SCRUM-47](../docs/scrum-47-validacao.md).
+
 ## Configuração e publicação
 
 `.env.example` documenta `VITE_API_BASE_URL`; vazio usa `/api`. Essa variável fica pública na versão compilada. Na configuração atual da API, use a mesma origem e um proxy reverso para `/api`: o servidor não habilita CORS e recusa entrada e saída de contas por outra origem. Uma URL externa exige alinhamento de CORS, cookies e origem com o responsável pela API.
@@ -193,7 +253,7 @@ npm run preview
 
 O comando `build` gera a versão compilada em `dist/`. O comando `preview` disponibiliza essa versão localmente e herda o proxy configurado para o servidor em localhost:3000; mantenha a API local em execução. A hospedagem publicada deve encaminhar `/api` para o servidor. Em produção, o cookie Secure exige HTTPS.
 
-A hospedagem deve servir `index.html` nas rotas do BrowserRouter (`/acesso`, `/ensaios`, `/instrumentos`, `/integrantes`, `/administracao`), preservando os caminhos da API.
+A hospedagem deve servir `index.html` nas rotas do BrowserRouter (`/acesso`, `/ensaios`, `/instrumentos`, `/integrantes`, `/demanda`, `/administracao`), preservando os caminhos da API.
 
 ## Testes
 

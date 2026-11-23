@@ -12,6 +12,7 @@ import Login from './pages/Login.jsx';
 import Ensaios from './pages/Ensaios.jsx';
 import Instrumentos from './pages/Instrumentos.jsx';
 import Integrantes from './pages/Integrantes.jsx';
+import Demanda from './pages/Demanda.jsx';
 import styles from './App.module.css';
 
 const modules = [
@@ -19,12 +20,13 @@ const modules = [
   { path: '/ensaios', title: 'Ensaios', description: 'Agenda da bateria e organização dos ensaios.' },
   { path: '/instrumentos', title: 'Instrumentos e estoque', description: 'Consulta de instrumentos e situação das unidades.' },
   { path: '/integrantes', title: 'Integrantes', description: 'Cadastro, consulta e atualização dos integrantes da bateria.', status: 'Diretoria' },
+  { path: '/demanda', title: 'Demanda e disponibilidade', description: 'Compare as confirmações de um ensaio com o estoque atual.', status: 'Diretoria' },
 ];
 const administration = { path: '/administracao', title: 'Área da diretoria', description: 'Gestão dos integrantes, ensaios e instrumentos da bateria.', status: 'Diretoria' };
 
 function Home() {
   const { usuario } = useAuth();
-  const visibleModules = [...modules.filter(module => (!usuario || module.path !== '/acesso') && (module.path !== '/integrantes' || canAccess(module.path, usuario))), ...(canAccess('/administracao', usuario) ? [administration] : [])];
+  const visibleModules = [...modules.filter(module => (!usuario || module.path !== '/acesso') && (!['/integrantes', '/demanda'].includes(module.path) || canAccess(module.path, usuario))), ...(canAccess('/administracao', usuario) ? [administration] : [])];
   return <>
     <div className={styles.introStage}>
       <RibbonWave extendToHeader />
@@ -50,7 +52,7 @@ function Administration() {
   return <section aria-labelledby="administration-title">
     <PageIntro className={styles.pageIntro} id="administration-title" eyebrow="Diretoria" title="Organize o próximo encontro."
       description="Acompanhe os módulos de gestão da sua bateria." />
-    <Message>Gerencie os integrantes, a agenda de ensaios e o cadastro de tipos e unidades.</Message>
+    <Message>Gerencie os integrantes, os ensaios e os instrumentos e acompanhe a demanda da bateria.</Message>
     <ModuleGrid modules={modules.filter(module => module.path !== '/acesso')} />
   </section>;
 }
@@ -75,6 +77,7 @@ export default function App() {
         <Route path="/ensaios" element={<Ensaios />} />
         <Route path="/instrumentos" element={<Instrumentos />} />
         <Route path="/integrantes" element={<Integrantes />} />
+        <Route path="/demanda" element={<Demanda />} />
         <Route path="/administracao" element={<Administration />} />
       </Route>
       <Route path="*" element={<><PageIntro title="Página não encontrada" description="Confira o endereço ou volte para o início." className={styles.pageIntro} /><ActionLink to="/" variant="secondary">Voltar ao início</ActionLink></>} />
