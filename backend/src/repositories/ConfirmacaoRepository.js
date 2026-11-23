@@ -1,20 +1,35 @@
 import { Confirmacao } from '../entities/Confirmacao.js';
 
 const SQL_UPSERT = `
-  INSERT INTO confirmacoes (ensaio_id, usuario_id, tipo_instrumento_id, criado_em)
-  VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+  INSERT INTO confirmacoes (ensaio_id, usuario_id, tipo_instrumento_id)
+  VALUES ($1, $2, $3)
   ON CONFLICT (usuario_id, ensaio_id) DO UPDATE
     SET tipo_instrumento_id = EXCLUDED.tipo_instrumento_id,
         cancelado_em = NULL,
-        atualizado_em = CURRENT_TIMESTAMP
+        atualizado_em = CASE
+          WHEN confirmacoes.cancelado_em IS NOT NULL
+            OR confirmacoes.tipo_instrumento_id <> EXCLUDED.tipo_instrumento_id
+          THEN GREATEST(confirmacoes.criado_em, confirmacoes.atualizado_em, clock_timestamp())
+          ELSE confirmacoes.atualizado_em
+        END
   RETURNING id, ensaio_id, usuario_id, tipo_instrumento_id, criado_em, atualizado_em, cancelado_em
 `;
 
 const SQL_CANCELAR = `
-  UPDATE confirmacoes
-  SET cancelado_em = CURRENT_TIMESTAMP, atualizado_em = CURRENT_TIMESTAMP
-  WHERE ensaio_id = $1 AND usuario_id = $2 AND cancelado_em IS NULL
-  RETURNING id
+  WITH ativa AS (
+    SELECT id, criado_em, atualizado_em
+    FROM confirmacoes
+    WHERE ensaio_id = $1 AND usuario_id = $2 AND cancelado_em IS NULL
+    FOR UPDATE
+  ), cancelamento AS (
+    SELECT id, GREATEST(criado_em, atualizado_em, clock_timestamp()) AS instante
+    FROM ativa
+  )
+  UPDATE confirmacoes AS c
+  SET cancelado_em = cancelamento.instante, atualizado_em = cancelamento.instante
+  FROM cancelamento
+  WHERE c.id = cancelamento.id
+  RETURNING c.id
 `;
 
 const SQL_BUSCAR_ATIVA = `

@@ -12,6 +12,7 @@ import { EnsaioRepository } from '../src/repositories/EnsaioRepository.js';
 import { EnsaioService } from '../src/services/EnsaioService.js';
 import { ConfirmacaoRepository } from '../src/repositories/ConfirmacaoRepository.js';
 import { ConfirmacaoService } from '../src/services/ConfirmacaoService.js';
+import { criarDemandaService } from '../src/config/demanda.js';
 import { env } from '../src/config/env.js';
 
 const habilitado = process.env.CONFIRMACAO_PG_INTEGRATION === '1' || process.env.PG_INTEGRATION === '1';
@@ -78,7 +79,7 @@ test('participação em ensaios com PostgreSQL descartável', { skip: !habilitad
   const confirmacaoRepo = new ConfirmacaoRepository(banco);
   const confirmacaoService = new ConfirmacaoService({ confirmacoes: confirmacaoRepo });
 
-  const app = createApp({ authService, ensaioService, confirmacaoService });
+  const app = createApp({ authService, ensaioService, confirmacaoService, demandaService: criarDemandaService(banco) });
   const server = app.listen(0, '127.0.0.1');
   await new Promise(resolve => server.once('listening', resolve));
   t.after(async () => {
@@ -372,6 +373,13 @@ test('participação em ensaios com PostgreSQL descartável', { skip: !habilitad
     const caixaDemanda2 = demanda2.find(d => d.tipo_instrumento_id === tipoCaixa.id);
     assert.ok(caixaDemanda2);
     assert.equal(caixaDemanda2.confirmados, 1);
+
+    const resposta = await fetch(`${base}/api/ensaios/${ensaioId}/demanda`, {
+      headers: { Cookie: cookieDiretoria },
+    });
+    assert.equal(resposta.status, 200);
+    const { demanda: consulta } = await resposta.json();
+    assert.equal(consulta.tipos.find(tipo => tipo.tipoInstrumentoId === tipoCaixa.id)?.confirmados, 1);
   });
 
   // --- 17. Rota de cancelamento do ensaio pela diretoria continua funcionando ---
@@ -442,6 +450,58 @@ test('participação em ensaios com PostgreSQL descartável', { skip: !habilitad
       [ensaioConcorrente.id],
     );
     assert.equal(rows[0].total, 1, 'Deve haver exatamente uma participação ativa após requisições simultâneas');
+  });
+
+  await t.test('transação iniciada primeiro pode gravar após outra confirmação', async () => {
+    const { rows: [ensaio] } = await banco.query(
+      'INSERT INTO ensaios (inicio_em, local) VALUES (clock_timestamp(), $1) RETURNING id',
+      ['Gravação fora da ordem de início'],
+    );
+    const { rows: [integrante] } = await banco.query('SELECT id FROM usuarios WHERE email = $1', ['integrante@bateria.example']);
+    const iniciou = Promise.withResolvers();
+    const continuar = Promise.withResolvers();
+    const repositorioAtrasado = new ConfirmacaoRepository({
+      async connect() {
+        const conexao = await banco.connect();
+        return {
+          async query(sql, params) {
+            const resultado = await conexao.query(sql, params);
+            if (sql === 'BEGIN') {
+              iniciou.resolve();
+              await continuar.promise;
+            }
+            return resultado;
+          },
+          release: () => conexao.release(),
+        };
+      },
+    });
+
+    const primeira = repositorioAtrasado.confirmar(ensaio.id, integrante.id, tipoSurdo.id);
+    const maisRecente = async () => {
+      try {
+        await Promise.race([iniciou.promise, primeira]);
+        await banco.query('SELECT pg_sleep(0.01)');
+        return await confirmacaoRepo.confirmar(ensaio.id, integrante.id, tipoCaixa.id);
+      } finally {
+        continuar.resolve();
+      }
+    };
+    const [atualizada, criada] = await Promise.all([primeira, maisRecente()]);
+    assert.equal(atualizada.status, 'OK');
+    assert.equal(criada.status, 'OK');
+    assert.equal(atualizada.confirmacao.id, criada.confirmacao.id);
+    assert.equal(atualizada.confirmacao.tipoInstrumentoId, tipoSurdo.id);
+    assert.ok(atualizada.confirmacao.atualizadoEm >= criada.confirmacao.confirmadoEm);
+
+    const repetida = await confirmacaoRepo.confirmar(ensaio.id, integrante.id, tipoSurdo.id);
+    assert.deepEqual(repetida.confirmacao.toJSON(), atualizada.confirmacao.toJSON());
+    await confirmacaoRepo.cancelar(ensaio.id, integrante.id);
+    const { rows: [datas] } = await banco.query(
+      'SELECT cancelado_em = atualizado_em AS mesmo_instante FROM confirmacoes WHERE id = $1',
+      [criada.confirmacao.id],
+    );
+    assert.equal(datas.mesmo_instante, true);
   });
 
   // --- 20. PUT sem Content-Type application/json retorna 415 ---
