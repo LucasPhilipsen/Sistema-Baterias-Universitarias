@@ -137,3 +137,15 @@ ORDER BY t.nome, t.id;
 | Consultar a demanda | Não altera `instrumentos` nem as confirmações |
 
 A suíte padrão (`npm test`) cobre a regra e o contrato HTTP com repositórios em memória. Para validar o cálculo no PostgreSQL, aplicar os scripts `001` a `005` em um banco descartável. Para conferir retirada e devolução no fluxo integrado, aplicar também o script `006` da SCRUM-38.
+
+## Implementação no backend — SCRUM-43
+
+| Parte | Arquivo |
+| --- | --- |
+| Regra da falta | `backend/src/entities/ItemDemanda.js` |
+| Serviço | `backend/src/services/DemandaService.js`: valida ID e filtros, confere o ensaio (`404` e `409`) e converte as contagens em inteiros |
+| Consulta | `backend/src/repositories/DemandaRepository.js`: SQL parametrizado único, exportado como `SQL_DEMANDA_POR_TIPO` |
+| HTTP | `backend/src/controllers/DemandaController.js` e `backend/src/routes/demanda.js`, montados em `/api/ensaios` no `app.js` |
+| Testes | `backend/tests/demanda.test.js` |
+
+Para a integração com a migração da SCRUM-37, ajustar `SQL_DEMANDA_POR_TIPO` para usar `cancelado_em IS NULL` e conferir o cálculo no PostgreSQL.
