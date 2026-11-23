@@ -71,10 +71,10 @@ test('cadastro, consulta atualizada, edição, recarga e login usam API real sem
       expect(row.senha_hash).not.toEqual(senha);
     } finally { await pool.end(); }
   }
-  const context = await browser.newContext();
+  const context = await browser.newContext({ baseURL: testInfo.project.use.baseURL });
   try {
     const newPage = await context.newPage();
-    await newPage.goto('http://127.0.0.1:5174/acesso');
+    await newPage.goto('/acesso');
     await newPage.getByLabel('E-mail (obrigatório)', { exact: true }).fill(updatedEmail);
     await newPage.getByLabel('Senha (obrigatório)', { exact: true }).fill(senha);
     await newPage.getByRole('button', { name: 'Entrar', exact: true }).click();

@@ -6,12 +6,14 @@ const integrante = { perfil: 'INTEGRANTE' };
 const diretoria = { perfil: 'DIRETORIA' };
 
 test('somente perfis reconhecidos podem acessar módulos e apenas diretoria acessa administração', () => {
-  for (const path of ['/ensaios', '/instrumentos', '/administracao', '/integrantes', '/demanda']) {
+  for (const path of ['/ensaios', '/instrumentos', '/emprestimos', '/administracao', '/integrantes', '/demanda']) {
     assert.equal(canAccess(path, null), false);
     assert.equal(canAccess(path, { perfil: 'ADMIN' }), false);
   }
   assert.equal(canAccess('/ensaios', integrante), true);
   assert.equal(canAccess('/instrumentos/', integrante), true);
+  assert.equal(canAccess('/emprestimos/', integrante), true);
+  assert.equal(canAccess('/emprestimos', diretoria), true);
   assert.equal(canAccess('/administracao', integrante), false);
   assert.equal(canAccess('/administracao/', diretoria), true);
   assert.equal(canAccess('/integrantes/', diretoria), true);
@@ -25,6 +27,7 @@ test('login retorna ao destino permitido e rejeita redirecionamentos externos ou
   assert.equal(loginDestination(integrante, '/instrumentos?filtro=livres#lista'), '/instrumentos?filtro=livres#lista');
   assert.equal(loginDestination(diretoria), '/administracao');
   assert.equal(loginDestination(diretoria, '/integrantes'), '/integrantes');
+  assert.equal(loginDestination(integrante, '/emprestimos'), '/emprestimos');
   assert.equal(loginDestination(integrante, '/integrantes'), '/ensaios');
   assert.equal(loginDestination(diretoria, '/demanda'), '/demanda');
   assert.equal(loginDestination(integrante, '/demanda'), '/ensaios');
