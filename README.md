@@ -74,7 +74,7 @@ CREATE DATABASE bateria_db;
 ```
 *(Opcional: para os testes com banco isolado, crie também `CREATE DATABASE bateria_test_db;`)*
 
-Após criar o banco, aplique os scripts `001` a `004`, nessa ordem, e as contas fictícias de desenvolvimento. Os scripts `005`, `006` e `007` acrescentam as tabelas de confirmações, empréstimos e presenças, respectivamente. Os comandos estão no [guia do banco](database/README.md) e na [Wiki de execução local](https://github.com/LucasPhilipsen/Sistema-Baterias-Universitarias/wiki/Execucao-local).
+Após criar o banco, aplique os scripts `001` a `004`, nessa ordem, e as contas fictícias de desenvolvimento. Os scripts `005` a `008` acrescentam as tabelas de confirmações, empréstimos, presenças e manutenções, respectivamente. Os comandos estão no [guia do banco](database/README.md) e na [Wiki de execução local](https://github.com/LucasPhilipsen/Sistema-Baterias-Universitarias/wiki/Execucao-local).
 
 ### 2. Instalar dependências
 Entre na pasta `backend/` e instale os pacotes:
