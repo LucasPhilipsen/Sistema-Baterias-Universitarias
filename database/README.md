@@ -157,6 +157,16 @@ Em um banco de desenvolvimento já configurado, execute uma vez:
 psql -X -h localhost -p 5432 -U postgres -d bateria_db -v ON_ERROR_STOP=1 -f database/007-criar-presencas.sql
 ```
 
+### Manutenção de instrumentos (SCRUM-57)
+
+O script `008-criar-manutencoes.sql` depende da tabela `instrumentos` e cria o histórico de manutenção. O índice único parcial limita cada unidade a uma manutenção aberta. A API será responsável por gravar a manutenção e atualizar a situação da unidade na mesma transação, conforme o [contrato de manutenção](../docs/contrato-manutencoes.md).
+
+Em um banco de desenvolvimento já configurado, execute uma vez:
+
+```sh
+psql -X -h localhost -p 5432 -U postgres -d bateria_db -v ON_ERROR_STOP=1 -f database/008-criar-manutencoes.sql
+```
+
 ### Usuários e dados iniciais
 
 Teste da entidade e dos hashes das contas fictícias, sem depender do servidor HTTP ou de pacotes npm:
