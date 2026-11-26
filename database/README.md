@@ -147,6 +147,16 @@ try {
 
 O teste confere autorização, criação persistida, atualização do estoque, histórico isolado por integrante, recusa de unidade em manutenção, retirada concorrente e devolução repetida após uma nova retirada. Os registros ficam restritos ao banco descartável.
 
+### Presença em ensaios (SCRUM-53)
+
+O script `007-criar-presencas.sql` cria a tabela `presencas`, com um registro por ensaio e integrante. A estrutura usa as tabelas `usuarios` e `ensaios` e pode ser aplicada sobre um banco existente sem carregar registros de presença a partir das confirmações. Os campos, as rotas e as regras de gravação estão no [contrato de presença](../docs/contrato-presencas.md).
+
+Em um banco de desenvolvimento já configurado, execute uma vez:
+
+```sh
+psql -X -h localhost -p 5432 -U postgres -d bateria_db -v ON_ERROR_STOP=1 -f database/007-criar-presencas.sql
+```
+
 ### Usuários e dados iniciais
 
 Teste da entidade e dos hashes das contas fictícias, sem depender do servidor HTTP ou de pacotes npm:
