@@ -167,6 +167,20 @@ Em um banco de desenvolvimento já configurado, execute uma vez:
 psql -X -h localhost -p 5432 -U postgres -d bateria_db -v ON_ERROR_STOP=1 -f database/008-criar-manutencoes.sql
 ```
 
+Para testar as rotas, a persistência, as transações e a concorrência, configure `backend/.env.test` para um banco vazio chamado, por exemplo, `bateria_manutencoes_test_local`. O teste aplica `001`, `002`, `004`, `006`, `008` e as contas fictícias; recusa banco fora do prefixo ou com tabelas existentes. Em `backend/`, execute:
+
+```powershell
+$env:NODE_ENV = 'test'
+$env:MANUTENCOES_PG_INTEGRATION = '1'
+try {
+  node --env-file-if-exists=.env.test --test tests/manutencoes.postgres.test.js
+} finally {
+  Remove-Item Env:MANUTENCOES_PG_INTEGRATION
+}
+```
+
+O teste cobre autorização, validação, abertura e encerramento persistidos, histórico, recusa de unidade emprestada, manutenção duplicada, concorrência entre empréstimo e manutenção e encerramento repetido após nova retirada. Os registros ficam restritos ao banco descartável.
+
 ### Usuários e dados iniciais
 
 Teste da entidade e dos hashes das contas fictícias, sem depender do servidor HTTP ou de pacotes npm:
