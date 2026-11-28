@@ -70,3 +70,9 @@ Usar o formato `{ "error": { "code": "...", "message": "..." } }`.
 A diretoria abre o histórico a partir do ID de uma unidade retornada pela API de instrumentos. Use `session.request()` para consultar, abrir e encerrar. Mostre a ação de abrir para unidade disponível e a de encerrar para a manutenção aberta retornada pela API. Após sucesso, consulte novamente o histórico, a unidade e o resumo de estoque. Em caso de `409`, mostre a mensagem e atualize as consultas para refletir a operação concorrente.
 
 Lucas implementa a API na [SCRUM-58](https://pds20262-g14.atlassian.net/browse/SCRUM-58). Pedro usa o contrato na [SCRUM-59](https://pds20262-g14.atlassian.net/browse/SCRUM-59). Felipe confere histórico, empréstimos, concorrência e disponibilidade na [SCRUM-60](https://pds20262-g14.atlassian.net/browse/SCRUM-60).
+
+## Implementação do backend (SCRUM-58)
+
+As rotas estão em `backend/src/routes/manutencoes.js`, com entidade, serviço, repositório e controller em `backend/src/entities/Manutencao.js`, `backend/src/services/ManutencaoService.js`, `backend/src/repositories/ManutencaoRepository.js` e `backend/src/controllers/ManutencaoController.js`. Todas exigem sessão de diretoria. Abertura e encerramento bloqueiam primeiro a linha de `instrumentos`, na mesma ordem usada pelos empréstimos.
+
+Em `backend/`, `npm test` executa os testes HTTP com repositório em memória. A integração PostgreSQL precisa de banco vazio descartável com prefixo `bateria_manutencoes_test_`; o teste aplica as migrations e os dados fictícios descritos no [guia do banco](../database/README.md#manutenção-de-instrumentos-scrum-57).
